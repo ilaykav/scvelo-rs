@@ -37,27 +37,19 @@ jobs:
           path: dist/
 
   macos:
-    name: macOS ${{ matrix.target }} wheels
-    runs-on: ${{ matrix.runs_on }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: x86_64
-            runs_on: macos-13
-          - target: aarch64
-            runs_on: macos-14
+    name: macOS aarch64 wheels
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - uses: PyO3/maturin-action@v1
         with:
-          target: ${{ matrix.target }}
+          target: aarch64
           args: --release --out dist --interpreter python3.10 python3.11 python3.12 python3.13
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-macos-${{ matrix.target }}
+          name: wheels-macos-aarch64
           path: dist/
 
   windows:

@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "scvelo-rs"
 version = "0.1.0"
-description = "Fast Rust implementation of scVelo's dynamical-model EM kernel"
+description = "Drop-in Rust acceleration of scVelo for single-cell RNA velocity."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
@@ -21,6 +21,12 @@ dependencies = [
     "scipy>=1.11",
     "anndata>=0.10",
 ]
+
+[project.urls]
+Homepage   = "https://github.com/ilaykav/scvelo-rs"
+Repository = "https://github.com/ilaykav/scvelo-rs"
+Issues     = "https://github.com/ilaykav/scvelo-rs/issues"
+Changelog  = "https://github.com/ilaykav/scvelo-rs/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [

@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/pypi/l/scvelo-rs.svg)](https://github.com/ilaykav/scvelo-rs/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/pypi/dm/scvelo-rs.svg)](https://pypi.org/project/scvelo-rs/)
 
-**A drop-in Rust + PyO3 port of [scVelo](https://github.com/theislab/scvelo).**
+_Drop-in compatible. More velocity_ - A drop-in Rust + PyO3 port of [scVelo](https://github.com/theislab/scvelo).
 
 Rust implementation of `recover_dynamics`, `velocity_graph`,
 deterministic `velocity`, and `pca`. Lighter operations like plotting, datasets, pseudotime & terminal states still route through scVelo and scanpy to keep them bit-exact.
@@ -38,7 +38,7 @@ scv.tl.recover_dynamics(adata)         # bit-exact, no other code change needed
 ## Highlights
 
 - **30–40× faster** than the original scVelo on representative atlases (5k–100k
-  cells), and **3–4× lower peak memory**. See [Benchmarks](#benchmarks).
+  cells), and **~2–4× lower peak memory**. See [Benchmarks](#benchmarks).
 - **Bit-exact** equivalence to scVelo on 99.9% of genes — the residual
   drift is at f64 ULP scale (per-gene Pearson r = 1.0000 across
   `fit_alpha`, `fit_beta`, `fit_gamma`, `fit_t_`).
@@ -132,7 +132,7 @@ Measured locally on standard datasets.
 | velocity_graph (20k, 100)                                 |  20,000 | 100 | 1727.5 MB |  626.5 MB | 1,101 MB |
 | steady-state layers (5k, 200)                             |   5,000 | 200 |  252.1 MB |   66.2 MB |   186 MB |
 | full pipeline (50k, 100)                                  |  50,000 | 100 | 4831.6 MB | 1879.3 MB | 2,952 MB |
-| OOM crash test (100k, 30)                                 | 100,000 |  30 | 7074.4 MB | 2794.9 MB | 4,280 MB |
+| recover_dynamics + velocity_graph (100k, 30)              | 100,000 |  30 | 7074.4 MB | 2794.9 MB | 4,280 MB |
 
 ## Build from source
 
