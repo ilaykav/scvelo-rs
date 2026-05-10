@@ -35,14 +35,17 @@ jobs:
             target
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
 
-      - name: Build + install scvelo-rs (release)
+      - name: Build scvelo-rs wheel (release)
         uses: PyO3/maturin-action@v1
         with:
-          command: develop
-          args: --release
+          command: build
+          args: --release --out dist --interpreter ${{ matrix.python }}
 
-      - name: Install test deps
-        run: pip install pytest scvelo scanpy hypothesis
+      - name: Install scvelo-rs + test deps
+        shell: bash
+        run: |
+          pip install --force-reinstall dist/*.whl
+          pip install pytest scvelo scanpy hypothesis
 
       - name: Run unit + integration tests
         run: pytest tests/unit tests/integration -q
