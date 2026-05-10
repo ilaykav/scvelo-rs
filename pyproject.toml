@@ -1,0 +1,79 @@
+[build-system]
+requires = ["maturin>=1.7"]
+build-backend = "maturin"
+
+[project]
+name = "scvelo-rs"
+version = "0.1.0"
+description = "Fast Rust implementation of scVelo's dynamical-model EM kernel"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "BSD-3-Clause" }
+authors = [{ name = "Ilay Kavitzky", email = "ilay.kavitzky@gmail.com" }]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.11",
+    "anndata>=0.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "scvelo>=0.3",
+    "scanpy>=1.10",
+    "pytest-benchmark>=4",
+]
+docs = [
+    "sphinx>=7",
+    "furo>=2024",
+    "myst-parser>=2",
+    "sphinx-autodoc-typehints>=2",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+python-source = "python"
+module-name = "scvelo_rs._scvelo_rs"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "benchmark: long-running speedup benchmarks (opt in: pytest -m benchmark)",
+]
+# Skip benchmarks by default — they take 60+ minutes.
+addopts = "-m 'not benchmark'"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = [
+    "docs/_build",
+    "docs/_archive",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long — handled by formatter
+    "E741",  # ambiguous variable names (we use `o`, `t_` to mirror scvelo)
+    "B008",  # function calls in defaults (allowed for AnnData ops)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests intentionally import after pytest.importorskip / sys.path setup.
+"tests/**" = ["E402"]
+# Notebooks bind intermediate variables for inspection.
+"notebooks/**" = ["F841", "E402"]

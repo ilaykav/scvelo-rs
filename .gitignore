@@ -1,0 +1,48 @@
+# Rust
+/target/
+**/*.rs.bk
+# Cargo.lock IS committed for reproducible wheel builds.
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+*.pdb
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.venv/
+venv/
+env/
+build/
+dist/
+wheels/
+
+# maturin
+*.whl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Data — never commit large fixture files
+*.h5ad
+*.loom
+*.h5
+*.npy
+*.npz
+data/
+tests/_data/
+benchmarks_output/
+.claude/
+bench_output.log
+CLAUDE.md
+
+# Docs deferred to a later release. Kept locally, ignored for now.
+docs/

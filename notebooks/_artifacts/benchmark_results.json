@@ -1,0 +1,235 @@
+[
+  {
+    "name": "speed_recover_dynamics_5k",
+    "category": "speed",
+    "long": false,
+    "n_cells": 5000,
+    "n_genes": 50,
+    "ops": [
+      "recover_dynamics"
+    ],
+    "scvelo": {
+      "status": "ok",
+      "wall_s": 43.24,
+      "peak_mb": 91.7
+    },
+    "scvelo_rs": {
+      "status": "ok",
+      "wall_s": 1.03,
+      "peak_mb": 55.8
+    },
+    "speedup_x": 41.98,
+    "mem_saved_mb": 35.9
+  },
+  {
+    "name": "speed_velocity_20k",
+    "category": "speed",
+    "long": false,
+    "n_cells": 20000,
+    "n_genes": 100,
+    "ops": [
+      "recover_dynamics",
+      "velocity"
+    ],
+    "scvelo": {
+      "status": "ok",
+      "wall_s": 380.02,
+      "peak_mb": 479.0
+    },
+    "scvelo_rs": {
+      "status": "ok",
+      "wall_s": 10.09,
+      "peak_mb": 240.2
+    },
+    "speedup_x": 37.66,
+    "mem_saved_mb": 238.8
+  },
+  {
+    "name": "speed_velocity_graph_20k",
+    "category": "speed",
+    "long": false,
+    "n_cells": 20000,
+    "n_genes": 100,
+    "ops": [
+      "recover_dynamics",
+      "velocity",
+      "velocity_graph"
+    ],
+    "scvelo": {
+      "status": "ok",
+      "wall_s": 389.54,
+      "peak_mb": 1595.2
+    },
+    "scvelo_rs": {
+      "status": "ok",
+      "wall_s": 10.79,
+      "peak_mb": 626.5
+    },
+    "speedup_x": 36.1,
+    "mem_saved_mb": 968.7
+  },
+  {
+    "name": "speed_full_pipeline_50k",
+    "category": "speed",
+    "long": true,
+    "n_cells": 50000,
+    "n_genes": 100,
+    "ops": [
+      "recover_dynamics",
+      "velocity",
+      "velocity_graph"
+    ],
+    "scvelo": {
+      "status": "ok",
+      "wall_s": 1202.26,
+      "peak_mb": 4805.9
+    },
+    "scvelo_rs": {
+      "status": "ok",
+      "wall_s": 34.35,
+      "peak_mb": 1937.8
+    },
+    "speedup_x": 35.0,
+    "mem_saved_mb": 2868.1
+  },
+  {
+    "name": "speed_recover_dynamics_100k",
+    "category": "speed",
+    "long": true,
+    "n_cells": 100000,
+    "n_genes": 30,
+    "ops": [
+      "recover_dynamics"
+    ],
+    "scvelo": {
+      "status": "ok",
+      "wall_s": 671.65,
+      "peak_mb": 1790.1
+    },
+    "scvelo_rs": {
+      "status": "ok",
+      "wall_s": 22.85,
+      "peak_mb": 1061.1
+    },
+    "speedup_x": 29.39,
+    "mem_saved_mb": 729.0
+  },
+  {
+    "name": "mem_recover_dynamics_5k",
+    "category": "memory",
+    "long": false,
+    "n_cells": 5000,
+    "n_genes": 50,
+    "ops": [
+      "recover_dynamics"
+    ],
+    "scvelo": {
+      "status": "ok",
+      "wall_s": 46.23,
+      "peak_mb": 108.4
+    },
+    "scvelo_rs": {
+      "status": "ok",
+      "wall_s": 2.19,
+      "peak_mb": 35.0
+    },
+    "speedup_x": 21.11,
+    "mem_saved_mb": 73.4
+  },
+  {
+    "name": "mem_velocity_graph_20k",
+    "category": "memory",
+    "long": false,
+    "n_cells": 20000,
+    "n_genes": 100,
+    "ops": [
+      "recover_dynamics",
+      "velocity",
+      "velocity_graph"
+    ],
+    "scvelo": {
+      "status": "ok",
+      "wall_s": 407.19,
+      "peak_mb": 1727.5
+    },
+    "scvelo_rs": {
+      "status": "ok",
+      "wall_s": 15.94,
+      "peak_mb": 626.5
+    },
+    "speedup_x": 25.55,
+    "mem_saved_mb": 1101.0
+  },
+  {
+    "name": "mem_steady_state_layers",
+    "category": "memory",
+    "long": false,
+    "n_cells": 5000,
+    "n_genes": 200,
+    "ops": [
+      "recover_dynamics",
+      "velocity",
+      "velocity_graph"
+    ],
+    "scvelo": {
+      "status": "ok",
+      "wall_s": 184.71,
+      "peak_mb": 252.1
+    },
+    "scvelo_rs": {
+      "status": "ok",
+      "wall_s": 13.98,
+      "peak_mb": 66.2
+    },
+    "speedup_x": 13.21,
+    "mem_saved_mb": 185.9
+  },
+  {
+    "name": "mem_full_pipeline_50k",
+    "category": "memory",
+    "long": true,
+    "n_cells": 50000,
+    "n_genes": 100,
+    "ops": [
+      "recover_dynamics",
+      "velocity",
+      "velocity_graph"
+    ],
+    "scvelo": {
+      "status": "ok",
+      "wall_s": 1266.52,
+      "peak_mb": 4831.6
+    },
+    "scvelo_rs": {
+      "status": "ok",
+      "wall_s": 35.7,
+      "peak_mb": 1879.3
+    },
+    "speedup_x": 35.48,
+    "mem_saved_mb": 2952.3
+  },
+  {
+    "name": "mem_oom_crash_100k",
+    "category": "memory",
+    "long": true,
+    "n_cells": 100000,
+    "n_genes": 30,
+    "ops": [
+      "recover_dynamics",
+      "velocity",
+      "velocity_graph"
+    ],
+    "scvelo": {
+      "status": "ok",
+      "wall_s": 750.31,
+      "peak_mb": 7074.4
+    },
+    "scvelo_rs": {
+      "status": "ok",
+      "wall_s": 25.36,
+      "peak_mb": 2794.9
+    },
+    "speedup_x": 29.59,
+    "mem_saved_mb": 4279.5
+  }
+]

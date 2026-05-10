@@ -1,0 +1,54 @@
+[package]
+name = "scvelo-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ilay Kavitzky <ilay.kavitzky@gmail.com>"]
+description = "Drop-in Rust acceleration of scVelo for single-cell RNA velocity."
+license = "BSD-3-Clause"
+readme = "README.md"
+repository = "https://github.com/ilaykav/scvelo-rs"
+
+[lib]
+name = "scvelo_rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py310"] }
+numpy = "0.22"
+ndarray = { version = "0.16", features = ["rayon"] }
+rayon = "1.10"
+libm = "0.2"
+
+# Pure-Rust deps for the accelerated scanpy primitives (PCA, KNN). Kept
+# pure-Rust so cross-platform wheels don't need OpenBLAS / vcpkg.
+nalgebra = "0.33"
+hnsw_rs = "0.3"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[lints.rust]
+# scvelo's Python names use trailing underscores (`tau_`, `t_`); when we add
+# suffixes we get names like `tau__unmasked` that clippy flags. Mirroring
+# scvelo identifiers is the explicit goal of this crate.
+non_snake_case = "allow"
+# Public helper surface is wider than internal callers — keep it stable for
+# downstream users / future kernels.
+dead_code = "allow"
+
+[lints.clippy]
+# PyO3 entry points have many arrays and return tuples by design.
+too_many_arguments = "allow"
+type_complexity = "allow"
+# Mirroring scvelo numpy idioms — parallel-index loops are clearer than
+# iterators when reading several arrays at the same offset.
+needless_range_loop = "allow"
+# `for _ in 0..n { v.push(0.0) }` is intentional in init paths where the
+# loop body is followed by mutation that vec![0.0; n] can't express.
+same_item_push = "allow"
+# We use NaN-aware `!(loss < threshold)` patterns that flip naturally to NaN.
+neg_cmp_op_on_partial_ord = "allow"
+# False-positive on `?` across PyO3 readwrite-array conversions.
+useless_conversion = "allow"
