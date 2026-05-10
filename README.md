@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/pypi/l/scvelo-rs.svg)](https://github.com/ilaykav/scvelo-rs/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/pypi/dm/scvelo-rs.svg)](https://pypi.org/project/scvelo-rs/)
 
-_Drop-in compatible. More velocity_ - A drop-in Rust + PyO3 port of [scVelo](https://github.com/theislab/scvelo).
+A Rust + PyO3 port of [scVelo](https://github.com/theislab/scvelo).
 
 Rust implementation of `recover_dynamics`, `velocity_graph`,
 deterministic `velocity`, and `pca`. Lighter operations like plotting, datasets, pseudotime & terminal states still route through scVelo and scanpy to keep them bit-exact.
