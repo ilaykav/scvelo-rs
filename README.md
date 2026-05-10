@@ -9,7 +9,7 @@
 
 A Rust + PyO3 port of [scVelo](https://github.com/theislab/scvelo).
 
-Rust implementation of heavy-weight bottlenecks like `recover_dynamics` & `velocity_graph`. Lighter operations like plotting, datasets, pseudotime & terminal states still route through scVelo and scanpy.
+Rust implementation of heavy-weight bottlenecks like `recover_dynamics` & `velocity_graph` - bit-exact to the original scVelo.
 
 ## Highlights
 

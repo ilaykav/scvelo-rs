@@ -10,11 +10,29 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
 authors = [{ name = "Ilay Kavitzky", email = "ilay.kavitzky@gmail.com" }]
+keywords = [
+    "scvelo",
+    "rna-velocity",
+    "single-cell",
+    "single-cell-rna-seq",
+    "bioinformatics",
+    "rust",
+    "pyo3",
+]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
-    "Programming Language :: Rust",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Rust",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Typing :: Typed",
 ]
 dependencies = [
     "numpy>=1.24",
