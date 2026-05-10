@@ -14,6 +14,7 @@ for _name in _attrs:
     globals()[_name] = getattr(_scv.pl, _name)
 del _name
 del _scv
+del annotations
 
 __all__ = _attrs
 del _attrs
