@@ -144,7 +144,7 @@ pub mod knn {
             }
             // pad with last value if HNSW didn't return enough neighbors.
             while written < k {
-                idx[i * k + written] = idx[i * k + written.saturating_sub(1).max(0)];
+                idx[i * k + written] = idx[i * k + written.saturating_sub(1)];
                 dist[i * k + written] = f32::INFINITY;
                 written += 1;
             }
