@@ -15,7 +15,7 @@ Run any example with:
 python examples/pancreas_end_to_end.py
 ```
 
-For numerical parity vs upstream scVelo on the same fixtures, see
+For numerical parity vs the original scVelo on the same fixtures, see
 [`notebooks/01_parity.py`](../notebooks/01_parity.py). For wall-time and
-peak-memory benchmarks against upstream, see
+peak-memory benchmarks against the original scVelo, see
 [`notebooks/02_benchmarks.py`](../notebooks/02_benchmarks.py).

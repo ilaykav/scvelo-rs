@@ -9,11 +9,8 @@
 
 **A drop-in Rust + PyO3 port of [scVelo](https://github.com/theislab/scvelo).**
 
-The compute-heavy kernels — `recover_dynamics`, `velocity_graph`,
-deterministic `velocity`, and `pca` — run in Rust. The rest of the API
-(preprocessing, plotting, datasets, pseudotime, terminal states, …) is
-forwarded to upstream scVelo and scanpy unchanged: those calls are
-either already fast (as observed from this project's benchmarks).
+Rust implementation of `recover_dynamics`, `velocity_graph`,
+deterministic `velocity`, and `pca`. Lighter operations like plotting, datasets, pseudotime & terminal states still route through scVelo and scanpy to keep them bit-exact.
 
 ```python
 # Option 1 — drop-in import.
@@ -21,7 +18,7 @@ import scvelo_rs as scv
 
 adata = scv.datasets.pancreas()
 scv.pp.filter_and_normalize(adata); scv.pp.moments(adata)
-scv.tl.recover_dynamics(adata)            # ~35× faster than upstream scvelo
+scv.tl.recover_dynamics(adata)            # ~35× faster than the original scvelo
 scv.tl.velocity(adata, mode="dynamical")
 scv.tl.velocity_graph(adata)
 scv.pl.velocity_embedding_stream(adata, basis="umap")
@@ -40,7 +37,7 @@ scv.tl.recover_dynamics(adata)         # bit-exact, no other code change needed
 
 ## Highlights
 
-- **30–40× faster** than upstream scVelo on representative atlases (5k–100k
+- **30–40× faster** than the original scVelo on representative atlases (5k–100k
   cells), and **3–4× lower peak memory**. See [Benchmarks](#benchmarks).
 - **Bit-exact** equivalence to scVelo on 99.9% of genes — the residual
   drift is at f64 ULP scale (per-gene Pearson r = 1.0000 across
@@ -181,7 +178,7 @@ reason.
 
 ## License
 
-Released under [BSD-3-Clause](LICENSE) to match upstream scVelo. The
+Released under [BSD-3-Clause](LICENSE). The
 Rust kernels are independent reimplementations of theislab's published
 algorithms — credit for the underlying methods belongs to
 La Manno et al. 2018 (RNA velocity, *Nature*,
@@ -220,11 +217,25 @@ or `scvelo_rs.__version__`).
 Authored and maintained by Ilay Kavitzky. Contribution guidelines are
 in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-## Getting in touch
+## Reporting bugs and feature requests
 
-The fastest path is the GitHub tracker —
+Open an issue at
 [github.com/ilaykav/scvelo-rs/issues](https://github.com/ilaykav/scvelo-rs/issues).
-For bug reports, please attach scVelo / scvelo-rs versions, OS, and a
-minimum reproducer (a small `.h5ad` slice usually does it). Atlas-scale
-runs and parity reports are especially welcome.
-Direct mail: ilay.kavitzky@gmail.com.
+
+**Bug reports** — include:
+
+- `scvelo-rs` version (`pip show scvelo-rs`)
+- OS and Python version
+- A minimum reproducer (a small `.h5ad` slice + the calls that fail
+  is usually enough)
+- What you expected vs what you got
+
+**Parity issues** (a fitted parameter or velocity vector differs from
+the original scvelo): include both runs' values for the affected
+gene/cell, the relative drift, and which fixture you ran on.
+
+**Feature requests** — describe the workflow you can't do today, not
+just the API you'd like. Atlas-scale parity reports are especially
+welcome.
+
+For anything else, direct mail: ilay.kavitzky@gmail.com.

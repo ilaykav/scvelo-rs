@@ -26,9 +26,13 @@ def _build_fixture(name: str, dataset: str, n_obs: int) -> None:
     import scvelo as scv
 
     adata = getattr(scv.datasets, dataset)()
-    scv.pp.filter_and_normalize(adata, min_shared_counts=20)
-    scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
+    # Slice cells BEFORE preprocessing so the connectivities CSR is
+    # internally consistent. Slicing post-moments leaves dangling
+    # column indices that scvelo flags as "corrupted neighbor graph".
     adata = adata[:n_obs].copy()
+    scv.pp.filter_and_normalize(adata, min_shared_counts=10)
+    n = min(30, n_obs - 1)
+    scv.pp.moments(adata, n_pcs=n, n_neighbors=n)
     adata.write(_DATA_DIR / f"{name}.h5ad")
 
 
