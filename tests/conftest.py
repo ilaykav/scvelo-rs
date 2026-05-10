@@ -26,7 +26,7 @@ def _build_fixture(name: str, dataset: str, n_obs: int) -> None:
     import scvelo as scv
 
     adata = getattr(scv.datasets, dataset)()
-    scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=200)
+    scv.pp.filter_and_normalize(adata, min_shared_counts=20)
     scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
     adata = adata[:n_obs].copy()
     adata.write(_DATA_DIR / f"{name}.h5ad")
