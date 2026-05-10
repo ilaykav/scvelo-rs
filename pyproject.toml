@@ -38,6 +38,8 @@ dependencies = [
     "numpy>=1.24",
     "scipy>=1.11",
     "anndata>=0.10",
+    "scvelo>=0.3",
+    "scanpy>=1.10",
 ]
 
 [project.urls]
@@ -49,8 +51,6 @@ Changelog  = "https://github.com/ilaykav/scvelo-rs/blob/main/CHANGELOG.md"
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
-    "scvelo>=0.3",
-    "scanpy>=1.10",
     "pytest-benchmark>=4",
 ]
 docs = [
