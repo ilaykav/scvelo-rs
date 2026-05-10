@@ -35,11 +35,11 @@ jobs:
             target
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
 
-      - name: Install build deps
-        run: pip install maturin
-
       - name: Build + install scvelo-rs (release)
-        run: maturin develop --release
+        uses: PyO3/maturin-action@v1
+        with:
+          command: develop
+          args: --release
 
       - name: Install test deps
         run: pip install pytest scvelo scanpy hypothesis
@@ -67,7 +67,7 @@ jobs:
       - name: cargo fmt --check
         run: cargo fmt --all -- --check
       - name: cargo clippy
-        run: cargo clippy --all-targets --release -- -D warnings
+        run: cargo clippy --all-targets -- -D warnings
 
   python-lint:
     name: Python lint (ruff)

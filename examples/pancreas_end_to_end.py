@@ -56,8 +56,10 @@ def main() -> None:
     print(f"  pseudotime + confidence in {time.time() - t:.1f}s")
 
     print("\nResults:")
-    print(f"  fit_alpha range:      {adata.var['fit_alpha'].min():.3f} .. "
-          f"{adata.var['fit_alpha'].max():.3f}")
+    print(
+        f"  fit_alpha range:      {adata.var['fit_alpha'].min():.3f} .. "
+        f"{adata.var['fit_alpha'].max():.3f}"
+    )
     print(f"  fit_likelihood mean:  {adata.var['fit_likelihood'].mean():.3f}")
     print(f"  velocity_confidence:  {adata.obs['velocity_confidence'].mean():.3f} mean")
     print("\nDone. To plot velocity arrows, install matplotlib then run:")

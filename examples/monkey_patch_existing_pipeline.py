@@ -21,10 +21,11 @@ def main() -> None:
     # The one-line speedup. Apply BEFORE building your AnnData / running tl.
     import scvelo_rs.patch  # noqa: F401
 
-    print("Patched. scv.tl.recover_dynamics now points at:",
-          scv.tl.recover_dynamics.__module__)
-    print("Original preserved at scv.tl.recover_dynamics_original:",
-          scv.tl.recover_dynamics_original.__module__)
+    print("Patched. scv.tl.recover_dynamics now points at:", scv.tl.recover_dynamics.__module__)
+    print(
+        "Original preserved at scv.tl.recover_dynamics_original:",
+        scv.tl.recover_dynamics_original.__module__,
+    )
 
     # Standard scvelo workflow — unchanged.
     adata = scv.datasets.pancreas()

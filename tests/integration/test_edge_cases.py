@@ -130,7 +130,11 @@ def test_few_cells_adata():
     sc.pp.neighbors(adata, n_neighbors=5)
 
     scvelo_rs.recover_dynamics(
-        adata, var_names="all", n_jobs=1, show_progress_bar=False, t_max=False,
+        adata,
+        var_names="all",
+        n_jobs=1,
+        show_progress_bar=False,
+        t_max=False,
         fit_connected_states=False,
     )
     assert "fit_alpha" in adata.var.columns
@@ -154,8 +158,11 @@ def test_duplicate_var_names_does_not_crash():
 
     # Pass an explicit list that includes the duplicated name.
     scvelo_rs.recover_dynamics(
-        adata, var_names=[new_names[0]], n_jobs=1,
-        show_progress_bar=False, t_max=False,
+        adata,
+        var_names=[new_names[0]],
+        n_jobs=1,
+        show_progress_bar=False,
+        t_max=False,
     )
     assert "fit_alpha" in adata.var.columns
 
@@ -168,8 +175,10 @@ def test_foreign_gene_names_raise_or_warn():
     adata = _load_pancreas_50()
     with pytest.raises(ValueError, match="None of"):
         scvelo_rs.recover_dynamics(
-            adata, var_names=["__not_a_gene__", "__also_fake__"],
-            n_jobs=1, show_progress_bar=False,
+            adata,
+            var_names=["__not_a_gene__", "__also_fake__"],
+            n_jobs=1,
+            show_progress_bar=False,
         )
 
 
@@ -210,9 +219,7 @@ def test_no_layers_raises():
     adata = ad.AnnData(rng.normal(size=(20, 10)).astype(np.float32))
 
     with pytest.raises((ValueError, KeyError)):
-        scvelo_rs.recover_dynamics(
-            adata, var_names="all", n_jobs=1, show_progress_bar=False
-        )
+        scvelo_rs.recover_dynamics(adata, var_names="all", n_jobs=1, show_progress_bar=False)
 
 
 # ---------------------------------------------------------------------------
@@ -227,18 +234,15 @@ def test_determinism_across_n_jobs():
 
     a1 = _load_pancreas_50()
     a2 = _load_pancreas_50()
-    scvelo_rs.recover_dynamics(
-        a1, var_names="all", n_jobs=1, show_progress_bar=False, t_max=False
-    )
-    scvelo_rs.recover_dynamics(
-        a2, var_names="all", n_jobs=4, show_progress_bar=False, t_max=False
-    )
+    scvelo_rs.recover_dynamics(a1, var_names="all", n_jobs=1, show_progress_bar=False, t_max=False)
+    scvelo_rs.recover_dynamics(a2, var_names="all", n_jobs=4, show_progress_bar=False, t_max=False)
 
     for col in ("fit_alpha", "fit_beta", "fit_gamma", "fit_t_"):
         v1 = a1.var[col].to_numpy()
         v2 = a2.var[col].to_numpy()
         nan_mask = np.isnan(v1) | np.isnan(v2)
         np.testing.assert_array_equal(
-            v1[~nan_mask], v2[~nan_mask],
-            err_msg=f"{col}: different result for n_jobs=1 vs n_jobs=4"
+            v1[~nan_mask],
+            v2[~nan_mask],
+            err_msg=f"{col}: different result for n_jobs=1 vs n_jobs=4",
         )
