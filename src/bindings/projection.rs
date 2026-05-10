@@ -4,6 +4,50 @@ use pyo3::prelude::*;
 use crate::{csr, divergence, projection};
 
 #[pyfunction]
+#[pyo3(signature = (
+    t, t_, alpha, beta, gamma,
+    scaling=1.0, u0_offset=0.0, s0_offset=0.0,
+    parallel=false,
+))]
+#[allow(clippy::too_many_arguments)]
+pub fn compute_dynamics_kernel<'py>(
+    py: Python<'py>,
+    t: PyReadonlyArray1<'py, f64>,
+    t_: f64,
+    alpha: f64,
+    beta: f64,
+    gamma: f64,
+    scaling: f64,
+    u0_offset: f64,
+    s0_offset: f64,
+    parallel: bool,
+) -> PyResult<(
+    Bound<'py, PyArray1<f64>>,
+    Bound<'py, PyArray1<f64>>,
+    Bound<'py, PyArray1<f64>>,
+)> {
+    let t_arr = t.as_array();
+    let t_slice = t_arr
+        .as_slice()
+        .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("t must be C-contiguous"))?;
+    let n = t_slice.len();
+    let mut a_out = vec![0.0f64; n];
+    let mut u_out = vec![0.0f64; n];
+    let mut s_out = vec![0.0f64; n];
+    py.allow_threads(|| {
+        projection::compute_dynamics_eval(
+            t_slice, t_, alpha, beta, gamma, scaling, u0_offset, s0_offset,
+            &mut a_out, &mut u_out, &mut s_out, parallel,
+        );
+    });
+    Ok((
+        a_out.into_pyarray_bound(py),
+        u_out.into_pyarray_bound(py),
+        s_out.into_pyarray_bound(py),
+    ))
+}
+
+#[pyfunction]
 #[pyo3(signature = (t, alpha, beta, gamma, u0=0.0, s0=0.0, parallel=false))]
 pub fn splicing_dynamics_eval_kernel<'py>(
     py: Python<'py>,

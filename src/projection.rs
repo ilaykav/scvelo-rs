@@ -172,6 +172,95 @@ pub fn splicing_dynamics_eval(
     }
 }
 
+/// Per-cell evaluation of the splicing dynamics for a single gene with
+/// fitted (alpha, beta, gamma, t_, scaling) and additive offsets
+/// (u0_offset, s0_offset). Mirrors `scvelo.utils.compute_dynamics`:
+/// for each `t_i`, switches between induction (`t_i < t_`) and repression
+/// (`t_i >= t_`) phases via the standard scvelo vectorize logic, then
+/// evaluates the closed-form solution.
+///
+/// `t` is taken as-is. Sorting (when requested by the Python caller) must
+/// happen before invoking this function.
+#[allow(clippy::too_many_arguments)]
+pub fn compute_dynamics_eval(
+    t: &[f64],
+    t_: f64,
+    alpha: f64,
+    beta: f64,
+    gamma: f64,
+    scaling: f64,
+    u0_offset: f64,
+    s0_offset: f64,
+    out_alpha: &mut [f64],
+    out_u: &mut [f64],
+    out_s: &mut [f64],
+    parallel: bool,
+) {
+    debug_assert_eq!(t.len(), out_alpha.len());
+    debug_assert_eq!(t.len(), out_u.len());
+    debug_assert_eq!(t.len(), out_s.len());
+
+    let g_minus_b = gamma - beta;
+    let safe_gmb = if g_minus_b.abs() < 1e-300 {
+        1e-300
+    } else {
+        g_minus_b
+    };
+    let alpha_over_beta = alpha / beta;
+    let alpha_over_gamma = alpha / gamma;
+
+    // State at the switching point t_ (induction with u0=s0=0):
+    //   u0_switch = unspliced(t_, 0, alpha, beta)
+    //   s0_switch = spliced(t_, 0, 0, alpha, beta, gamma)
+    let expu_t_ = (-beta * t_).exp();
+    let exps_t_ = (-gamma * t_).exp();
+    let u0_switch = alpha_over_beta * (1.0 - expu_t_);
+    let c_switch = alpha / safe_gmb; // (alpha - 0*beta) / (gamma-beta) when u0=0
+    let s0_switch = alpha_over_gamma * (1.0 - exps_t_) + c_switch * (exps_t_ - expu_t_);
+
+    let body = |ti: f64| -> (f64, f64, f64) {
+        let induction = ti < t_;
+        let tau = if induction { ti } else { ti - t_ };
+        let (u0_eff, s0_eff, alpha_eff) = if induction {
+            (0.0, 0.0, alpha)
+        } else {
+            (u0_switch, s0_switch, 0.0)
+        };
+
+        let expu = (-beta * tau).exp();
+        let exps = (-gamma * tau).exp();
+        let alpha_eff_over_beta = if induction { alpha_over_beta } else { 0.0 };
+        let alpha_eff_over_gamma = if induction { alpha_over_gamma } else { 0.0 };
+        let c = (alpha_eff - u0_eff * beta) / safe_gmb;
+
+        let u_raw = u0_eff * expu + alpha_eff_over_beta * (1.0 - expu);
+        let s_raw =
+            s0_eff * exps + alpha_eff_over_gamma * (1.0 - exps) + c * (exps - expu);
+        (alpha_eff, u_raw * scaling + u0_offset, s_raw + s0_offset)
+    };
+
+    if parallel && t.len() >= 4096 {
+        out_alpha
+            .par_iter_mut()
+            .zip(out_u.par_iter_mut())
+            .zip(out_s.par_iter_mut())
+            .zip(t.par_iter())
+            .for_each(|(((oa, ou), os), &ti)| {
+                let (a, u, s) = body(ti);
+                *oa = a;
+                *ou = u;
+                *os = s;
+            });
+    } else {
+        for i in 0..t.len() {
+            let (a, u, s) = body(t[i]);
+            out_alpha[i] = a;
+            out_u[i] = u;
+            out_s[i] = s;
+        }
+    }
+}
+
 /// Closed-form `tau` from `u` only (no spliced data).
 #[inline]
 pub fn tau_inv_u_scalar(u: f64, u0: f64, alpha: f64, beta: f64) -> f64 {
