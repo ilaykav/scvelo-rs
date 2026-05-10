@@ -9,8 +9,22 @@
 
 A Rust + PyO3 port of [scVelo](https://github.com/theislab/scvelo).
 
-Rust implementation of `recover_dynamics`, `velocity_graph`,
-deterministic `velocity`, and `pca`. Lighter operations like plotting, datasets, pseudotime & terminal states still route through scVelo and scanpy to keep them bit-exact.
+Rust implementation of heavy-weight bottlenecks like `recover_dynamics` & `velocity_graph`. Lighter operations like plotting, datasets, pseudotime & terminal states still route through scVelo and scanpy.
+
+## Highlights
+
+- **30–40× faster** than the original scVelo on representative atlases (5k–100k
+  cells), and **~2–4× lower peak memory**. See [Benchmarks](#benchmarks).
+- **Bit-exact** equivalence to scVelo on 99.9% of genes — the residual
+  drift is at f64 ULP scale (per-gene Pearson r = 1.0000 across
+  `fit_alpha`, `fit_beta`, `fit_gamma`, `fit_t_`).
+- **Drop-in**: import `scvelo_rs.patch` and every downstream call to
+  `scv.tl.{recover_dynamics, velocity, velocity_graph}` routes to Rust.
+  Or `import scvelo_rs as scv` for the full API.
+- **Cross-platform wheels** for Linux x86_64/aarch64, macOS arm64,
+  Windows x86_64. Single `abi3-py310` wheel covers Python 3.10–3.13.
+- **CPU-only.** Runs anywhere Python runs — laptop, HPC, Docker, ARM.
+  No CUDA. No Numba. No JIT warmup.
 
 ```python
 # Option 1 — drop-in import.
@@ -32,23 +46,6 @@ import scvelo_rs.patch  # noqa: F401   # patches scv.tl.{recover_dynamics, veloc
 
 scv.tl.recover_dynamics(adata)         # bit-exact, no other code change needed
 ```
-
----
-
-## Highlights
-
-- **30–40× faster** than the original scVelo on representative atlases (5k–100k
-  cells), and **~2–4× lower peak memory**. See [Benchmarks](#benchmarks).
-- **Bit-exact** equivalence to scVelo on 99.9% of genes — the residual
-  drift is at f64 ULP scale (per-gene Pearson r = 1.0000 across
-  `fit_alpha`, `fit_beta`, `fit_gamma`, `fit_t_`).
-- **Drop-in**: import `scvelo_rs.patch` and every downstream call to
-  `scv.tl.{recover_dynamics, velocity, velocity_graph}` routes to Rust.
-  Or `import scvelo_rs as scv` for the full API.
-- **Cross-platform wheels** for Linux x86_64/aarch64, macOS arm64/x86_64,
-  Windows x86_64. Single `abi3-py310` wheel covers Python 3.10–3.13.
-- **CPU-only.** Runs anywhere Python runs — laptop, HPC, Docker, ARM.
-  No CUDA. No Numba. No JIT warmup.
 
 ## Installation
 

@@ -1,6 +1,6 @@
 [package]
 name = "scvelo-rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Ilay Kavitzky <ilay.kavitzky@gmail.com>"]
 description = "Drop-in Rust acceleration of scVelo for single-cell RNA velocity."

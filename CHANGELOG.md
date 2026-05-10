@@ -6,6 +6,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] — README + metadata polish
+
+### Changed
+- README: tightened README & documentation.
+
+### Fixed
+- 0.1.0 shipped wheels for Linux x86_64/aarch64, macOS arm64, Windows x86_64
+  (not x86_64 macOS — `macos-13` runner queue was too long). Same matrix
+  in 0.1.1.
+
 ## [0.1.0] — first public release
 
 ### Added
