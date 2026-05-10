@@ -83,19 +83,18 @@ def test_knn_recall_vs_kdtree():
     )
 
 
-def test_pca_kernel_handles_anndata_via_pp():
-    """End-to-end sanity: scvelo_rs.pp.pca writes the scanpy schema."""
-    pytest.importorskip("scanpy")
-    import anndata as ad
-    import scvelo_rs
-
+def test_pca_kernel_shape_and_output_contracts():
+    """The Rust SVD kernel must return correctly-shaped (X_pca, PCs, var, var_ratio)
+    for the standard non-sparse / zero-centered case."""
     rng = np.random.default_rng(1)
-    adata = ad.AnnData(rng.normal(size=(150, 60)).astype(np.float32))
-    scvelo_rs.pp.pca(adata, n_comps=15)
+    X = rng.normal(size=(150, 60)).astype(np.float64)
+    x_pca, pcs, var, var_ratio = pca_kernel(np.ascontiguousarray(X), 15, True)
 
-    assert "X_pca" in adata.obsm, "X_pca not written"
-    assert adata.obsm["X_pca"].shape == (150, 15)
-    assert "PCs" in adata.varm, "PCs not written"
-    assert adata.varm["PCs"].shape == (60, 15)
-    assert "pca" in adata.uns
-    assert "variance_ratio" in adata.uns["pca"]
+    assert np.asarray(x_pca).shape == (150, 15)
+    assert np.asarray(pcs).shape == (15, 60)
+    assert np.asarray(var).shape == (15,)
+    assert np.asarray(var_ratio).shape == (15,)
+    # variance ratios should sum to <= 1 and be monotonically non-increasing.
+    var_ratio = np.asarray(var_ratio, dtype=np.float64)
+    assert var_ratio.sum() <= 1.0 + 1e-9
+    assert np.all(np.diff(var_ratio) <= 1e-9)

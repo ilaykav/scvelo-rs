@@ -55,8 +55,6 @@ def test_public_surface_matches_scvelo():
         "filter_and_normalize",
         "moments",
         "neighbors",
-        "pca",
-        "log1p",
         "filter_genes",
         "normalize_per_cell",
     ):

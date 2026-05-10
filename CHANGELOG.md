@@ -6,6 +6,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.3] — Test fixes
+
+### Fixed
+-  Test fixes.
+
 ## [0.1.2] — fix install + complete the drop-in surface
 
 ### Fixed
