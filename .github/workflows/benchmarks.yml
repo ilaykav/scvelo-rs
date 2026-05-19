@@ -16,6 +16,7 @@ on:
         options:
           - quick
           - long
+          - vendor-only
 
 jobs:
   benchmark:
@@ -52,18 +53,19 @@ jobs:
         shell: bash
         run: |
           pip install --force-reinstall dist/*.whl
-          pip install scvelo scanpy psutil py-cpuinfo
+          # cellrank is a hard dep of the vendor `cellrank2_hematopoiesis` workflow.
+          pip install scvelo scanpy psutil py-cpuinfo cellrank
 
       - name: Run benchmarks
         shell: bash
         run: |
           TIER="${{ github.event_name == 'schedule' && 'long' || inputs.tier }}"
           echo "Tier: $TIER"
-          if [ "$TIER" = "quick" ]; then
-            python notebooks/02_benchmarks.py --quick
-          else
-            python notebooks/02_benchmarks.py --long
-          fi
+          case "$TIER" in
+            quick)        python notebooks/02_benchmarks.py --quick ;;
+            vendor-only)  python notebooks/02_benchmarks.py --vendor-only ;;
+            *)            python notebooks/02_benchmarks.py --long ;;
+          esac
 
       - name: Upload benchmark artifacts
         if: always()

@@ -83,9 +83,9 @@ jobs:
       - name: Install ruff
         run: pip install ruff
       - name: ruff check
-        run: ruff check python tests notebooks examples
+        run: ruff check python tests notebooks examples vendor
       - name: ruff format --check
-        run: ruff format --check python tests notebooks examples
+        run: ruff format --check python tests notebooks examples vendor
 
   benchmarks-smoke:
     name: Benchmark smoke (perf regression gate)
