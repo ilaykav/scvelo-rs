@@ -4,6 +4,7 @@ mod align_dynamics;
 mod bimodality;
 mod bindings;
 mod csr;
+mod diff_kinetic;
 mod divergence;
 mod dynamics;
 mod em;

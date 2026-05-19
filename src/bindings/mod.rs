@@ -3,6 +3,7 @@ use pyo3::wrap_pyfunction;
 
 pub mod alignment;
 pub mod debug;
+pub mod diff_kinetic;
 pub mod projection;
 pub mod recovery;
 pub mod scanpy;
@@ -25,6 +26,7 @@ pub fn register(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(velocity::velocity_graph_kernel, m)?)?;
     m.add_function(wrap_pyfunction!(scanpy::pca_kernel, m)?)?;
     m.add_function(wrap_pyfunction!(scanpy::knn_kernel, m)?)?;
+    m.add_function(wrap_pyfunction!(diff_kinetic::diff_kinetic_test_kernel, m)?)?;
     m.add_function(wrap_pyfunction!(debug::_debug_exp, m)?)?;
     m.add_function(wrap_pyfunction!(debug::_debug_ln, m)?)?;
     m.add_function(wrap_pyfunction!(debug::_debug_splicing_solution, m)?)?;

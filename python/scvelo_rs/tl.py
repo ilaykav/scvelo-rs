@@ -12,6 +12,7 @@ additions in future scvelo releases flow through automatically.
 
 import scvelo as _scv
 
+from ._diff_kinetic import differential_kinetic_test  # noqa: F401
 from ._dynamics import recover_dynamics  # noqa: F401
 from ._velocity import velocity, velocity_graph  # noqa: F401
 
@@ -20,6 +21,8 @@ _OVERRIDDEN = {
     "velocity",
     "velocity_graph",
     "velocity_embedding",
+    "recover_latent_time",
+    "differential_kinetic_test",
 }
 
 

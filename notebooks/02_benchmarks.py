@@ -1,11 +1,11 @@
-"""Benchmark suite — 14 measurements across speed, memory, and vendor categories.
+"""Benchmark suite — 16 measurements across speed, memory, and vendor categories.
 
 Run as a script:
     python notebooks/02_benchmarks.py [--quick | --long | --vendor-only]
 
   --quick         run only the 7 quick benchmarks (~15 min on GH 2-core).
-  --long          run all benchmarks including 3 vendor workflows (~6-12 h).
-  --vendor-only   run only the 3 vendor (real-world) workflows.
+  --long          run all 16 benchmarks including 5 vendor workflows (~18-32 h).
+  --vendor-only   run only the 5 vendor (real-world) workflows.
   (default)       same as --long.
 
 Outputs `notebooks/_artifacts/benchmark_table.md` and `_artifacts/benchmark_results.json`.
@@ -26,9 +26,11 @@ Outputs `notebooks/_artifacts/benchmark_table.md` and `_artifacts/benchmark_resu
     mem_oom_crash_100k               — 100k × 30  LONG
 
   Vendor (real-world workflows, all LONG):
-    vendor_pancreas_tutorial         — scvelo pancreas tutorial (3.7k cells)
-    vendor_cellrank2_hematopoiesis   — CellRank fate mapping (24k cells)
-    vendor_mouse_gastrulation_atlas  — atlas scale (116k cells); scvelo SKIPPED
+    vendor_pancreas_tutorial               — scvelo pancreas tutorial (3.7k cells)
+    vendor_cellrank2_hematopoiesis         — CellRank fate mapping (24k cells)
+    vendor_mouse_gastrulation_atlas        — atlas scale (116k cells)
+    vendor_pbmc68k_pipeline                — Zheng 2017 PBMC (68k cells, immune)
+    vendor_gastrulation_e75_diffkinetics   — E7.5 (21k cells) + diff-kinetics path
 """
 
 from __future__ import annotations
@@ -336,7 +338,7 @@ BENCHMARKS: list[Bench] = [
         ops=["recover_dynamics", "velocity", "velocity_graph"],
         description="selling-point demo: scvelo's joblib forks OOM, we hold shared memory",
     ),
-    # === VENDOR (3) — real-world workflows; see vendor/workflows/ ===
+    # === VENDOR (5) — real-world workflows; see vendor/workflows/ ===
     Bench(
         name="vendor_pancreas_tutorial",
         category="vendor",
@@ -369,23 +371,44 @@ BENCHMARKS: list[Bench] = [
         n_cells=116_000,
         n_genes=2_000,
         workflow="mouse_gastrulation_atlas",
-        skip_scvelo=True,
-        skip_scvelo_reason=(
-            "documented OOM/timeout on stock scvelo at this scale "
-            "(scvelo issues #247, #756, #405; ~14 h on 100k cells per CLAUDE.md)"
-        ),
         description=(
             "Pijuan-Sala 2019 mouse gastrulation atlas (~116k cells): scvelo "
-            "dynamical pipeline at atlas scale; stock scvelo run skipped"
+            "dynamical pipeline at atlas scale; both backends timed"
+        ),
+    ),
+    Bench(
+        name="vendor_pbmc68k_pipeline",
+        category="vendor",
+        long=True,
+        n_cells=68_579,
+        n_genes=2_000,
+        workflow="pbmc68k_pipeline",
+        description=(
+            "Zheng 2017 PBMC 68k full dynamical pipeline (immune compartment, "
+            "different tissue from existing benches): pp -> recover_dynamics -> "
+            "velocity -> velocity_graph -> latent_time"
+        ),
+    ),
+    Bench(
+        name="vendor_gastrulation_e75_diffkinetics",
+        category="vendor",
+        long=True,
+        n_cells=21_167,
+        n_genes=2_000,
+        workflow="gastrulation_e75_diffkinetics",
+        description=(
+            "Pijuan-Sala 2019 E7.5 subset (~21k cells): pp -> recover_dynamics -> "
+            "velocity -> velocity_graph -> differential_kinetic_test -> "
+            "recover_dynamics (second fit on multi-kinetic genes) -> velocity"
         ),
     ),
 ]
 
-assert len(BENCHMARKS) == 14
-assert sum(1 for b in BENCHMARKS if b.long) == 7
+assert len(BENCHMARKS) == 16
+assert sum(1 for b in BENCHMARKS if b.long) == 9
 assert sum(1 for b in BENCHMARKS if b.category == "speed") == 6
 assert sum(1 for b in BENCHMARKS if b.category == "memory") == 5
-assert sum(1 for b in BENCHMARKS if b.category == "vendor") == 3
+assert sum(1 for b in BENCHMARKS if b.category == "vendor") == 5
 
 
 # ---------------------------------------------------------------------------
@@ -500,7 +523,7 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
             "numbers illustrate the gap rather than serving as a hardware-neutral "
             "benchmark.\n\n"
         )
-        f.write("14 measurements: 6 speed + 5 memory + 3 vendor (real workflows).\n\n")
+        f.write("16 measurements: 6 speed + 5 memory + 5 vendor (real workflows).\n\n")
 
         def fmt(d, key, unit):
             if not isinstance(d, dict):
@@ -580,12 +603,12 @@ def main():
     tier.add_argument(
         "--long",
         action="store_true",
-        help="run all 14 benchmarks (quick + long + vendor). Same as no flag.",
+        help="run all 16 benchmarks (quick + long + vendor). Same as no flag.",
     )
     tier.add_argument(
         "--vendor-only",
         action="store_true",
-        help="run only the 3 vendor (real-world) workflows",
+        help="run only the 5 vendor (real-world) workflows",
     )
     args = ap.parse_args()
 
