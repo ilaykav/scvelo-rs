@@ -18,8 +18,19 @@ def load_data():
 
 
 def run(lib, adata) -> None:
-    """Execute the full dynamical-model pipeline in-place on `adata`."""
-    lib.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
+    """Execute the full dynamical-model pipeline in-place on `adata`.
+
+    Preprocessing splits `filter_and_normalize` into its constituent steps
+    because scvelo 0.3.4's combined helper forwards `**kwargs` (including
+    `n_top_genes`) to `normalize_per_cell`, which rejects them. HVG selection
+    therefore goes through scanpy directly.
+    """
+    import scanpy as sc
+
+    lib.pp.filter_genes(adata, min_shared_counts=20)
+    lib.pp.normalize_per_cell(adata)
+    sc.pp.log1p(adata)
+    sc.pp.highly_variable_genes(adata, n_top_genes=2000, subset=True, flavor="seurat")
     lib.pp.moments(adata, n_pcs=30, n_neighbors=30)
     lib.tl.recover_dynamics(adata, n_jobs=1, show_progress_bar=False)
     lib.tl.velocity(adata, mode="dynamical")
