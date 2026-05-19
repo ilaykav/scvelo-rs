@@ -86,3 +86,43 @@ jobs:
         run: ruff check python tests notebooks examples
       - name: ruff format --check
         run: ruff format --check python tests notebooks examples
+
+  benchmarks-smoke:
+    name: Benchmark smoke (perf regression gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Build scvelo-rs wheel (release)
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --out dist --interpreter 3.12
+
+      - name: Install scvelo-rs + bench deps
+        shell: bash
+        run: |
+          pip install --force-reinstall dist/*.whl
+          pip install scvelo scanpy psutil
+
+      - name: Run smoke benchmark (5k x 50 full pipeline, wall <= 60s)
+        shell: bash
+        run: python notebooks/_smoke_benchmark.py

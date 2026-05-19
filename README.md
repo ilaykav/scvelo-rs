@@ -109,7 +109,11 @@ See [`examples/`](examples/) for runnable end-to-end scripts.
 
 ## Benchmarks
 
-Measured locally on standard datasets.
+Measured on a developer workstation, single-threaded `n_jobs=1`. GitHub-hosted CI
+runners (2 cores) will show smaller speedups — these numbers illustrate the gap
+rather than serving as a hardware-neutral benchmark. The full suite lives in
+[`notebooks/02_benchmarks.py`](notebooks/02_benchmarks.py) and stamps the runner's
+CPU/RAM into the regenerated table automatically.
 
 ### Wall time
 

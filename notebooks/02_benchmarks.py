@@ -1,11 +1,11 @@
 """Benchmark suite — 10 measurements split into speed and memory categories.
 
 Run as a script:
-    python notebooks/02_benchmarks.py [--quick] [--long-only]
+    python notebooks/02_benchmarks.py [--quick | --long]
 
-  --quick      run only the 6 quick benchmarks (default in CI).
-  --long-only  run only the 4 long-running benchmarks.
-  (default)    run all 10.
+  --quick   run only the 6 quick benchmarks (~15 min on GH 2-core).
+  --long    run all 10 benchmarks (quick + 4 long, ~1-2 h on GH 2-core).
+  (default) same as --long: run all 10.
 
 Outputs `notebooks/_artifacts/benchmark_table.md` and `_artifacts/benchmark_results.json`.
 
@@ -31,6 +31,8 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import os
+import platform
 import threading
 import time
 import warnings
@@ -42,6 +44,42 @@ import numpy as np
 import psutil
 
 warnings.filterwarnings("ignore")
+
+
+# ---------------------------------------------------------------------------
+# Runner hardware capture — stamped into JSON output and markdown header
+# so future regenerations are self-labeling and CI artifacts are comparable.
+# ---------------------------------------------------------------------------
+
+
+def _hardware_info() -> dict:
+    """Capture the runner's CPU / RAM / platform so result tables are honest."""
+    try:
+        import cpuinfo  # py-cpuinfo, optional
+
+        cpu_model = cpuinfo.get_cpu_info().get("brand_raw") or "unknown"
+    except Exception:
+        cpu_model = platform.processor() or "unknown"
+
+    return {
+        "cpu_model": cpu_model,
+        "cpu_count_physical": psutil.cpu_count(logical=False),
+        "cpu_count_logical": os.cpu_count(),
+        "total_ram_gb": round(psutil.virtual_memory().total / 1e9, 1),
+        "platform": platform.platform(),
+        "python": platform.python_version(),
+        "runner": "github-actions" if os.environ.get("GITHUB_ACTIONS") else "local",
+    }
+
+
+def _hardware_line(hw: dict) -> str:
+    return (
+        f"{hw['cpu_model']}, "
+        f"{hw['cpu_count_physical']}C/{hw['cpu_count_logical']}T, "
+        f"{hw['total_ram_gb']} GB RAM, "
+        f"{hw['platform']}, "
+        f"Python {hw['python']} ({hw['runner']})"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -317,10 +355,17 @@ def run_one(bench: Bench) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def write_markdown(results: list[dict], out_path: Path):
+def write_markdown(results: list[dict], out_path: Path, hardware: dict):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8") as f:
         f.write("# scvelo-rs benchmark suite\n\n")
+        f.write(f"**Run on:** {_hardware_line(hardware)}\n\n")
+        f.write(
+            "> Measured single-threaded with `n_jobs=1`. GitHub-hosted CI runners "
+            "(2 cores) show smaller speedups than developer workstations — these "
+            "numbers illustrate the gap rather than serving as a hardware-neutral "
+            "benchmark.\n\n"
+        )
         f.write("10 measurements: 5 speed + 5 memory, 4 marked LONG.\n\n")
 
         for category, header in (("speed", "Speed (wall time)"), ("memory", "Memory (peak heap)")):
@@ -363,17 +408,23 @@ def write_markdown(results: list[dict], out_path: Path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--quick", action="store_true", help="run only quick benchmarks")
-    ap.add_argument("--long-only", action="store_true", help="run only LONG benchmarks")
+    tier = ap.add_mutually_exclusive_group()
+    tier.add_argument("--quick", action="store_true", help="run only the 6 quick benchmarks")
+    tier.add_argument(
+        "--long",
+        action="store_true",
+        help="run all 10 benchmarks (quick + long). Same as no flag.",
+    )
     args = ap.parse_args()
 
     if args.quick:
         selected = [b for b in BENCHMARKS if not b.long]
-    elif args.long_only:
-        selected = [b for b in BENCHMARKS if b.long]
     else:
+        # default and --long both run everything (cumulative: long includes quick).
         selected = list(BENCHMARKS)
 
+    hardware = _hardware_info()
+    print(f"Hardware: {_hardware_line(hardware)}")
     print(
         f"Running {len(selected)} benchmarks "
         f"({sum(1 for b in selected if not b.long)} quick, "
@@ -403,8 +454,11 @@ def main():
 
     md_path = out_dir / "benchmark_table.md"
     json_path = out_dir / "benchmark_results.json"
-    write_markdown(results, md_path)
-    json_path.write_text(json.dumps(results, indent=2, default=str), encoding="utf-8")
+    write_markdown(results, md_path, hardware)
+    json_path.write_text(
+        json.dumps({"hardware": hardware, "results": results}, indent=2, default=str),
+        encoding="utf-8",
+    )
     print(f"\nresults -> {md_path}")
     print(f"raw     -> {json_path}")
 
