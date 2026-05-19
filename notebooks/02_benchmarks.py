@@ -3,7 +3,7 @@
 Run as a script:
     python notebooks/02_benchmarks.py [--quick | --long | --vendor-only]
 
-  --quick         run only the 6 quick benchmarks (~15 min on GH 2-core).
+  --quick         run only the 7 quick benchmarks (~15 min on GH 2-core).
   --long          run all benchmarks including 3 vendor workflows (~6-12 h).
   --vendor-only   run only the 3 vendor (real-world) workflows.
   (default)       same as --long.
@@ -383,7 +383,7 @@ BENCHMARKS: list[Bench] = [
 
 assert len(BENCHMARKS) == 14
 assert sum(1 for b in BENCHMARKS if b.long) == 7
-assert sum(1 for b in BENCHMARKS if b.category == "speed") == 5
+assert sum(1 for b in BENCHMARKS if b.category == "speed") == 6
 assert sum(1 for b in BENCHMARKS if b.category == "memory") == 5
 assert sum(1 for b in BENCHMARKS if b.category == "vendor") == 3
 
@@ -452,7 +452,6 @@ def run_one(bench: Bench) -> dict:
             # Uses the same backend so the timed call exercises that backend's
             # downstream consumers on its own fitted state.
             _run_ops(lib, a, bench.pre_ops)
-        wall, peak_mb, ok, _ = measure(_run_ops, lib, a, bench.ops)
         if bench.workflow is not None:
             wall, peak_mb, ok, _ = measure(timed_fn, *timed_args, lib, a)
         else:
@@ -501,7 +500,7 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
             "numbers illustrate the gap rather than serving as a hardware-neutral "
             "benchmark.\n\n"
         )
-        f.write("13 measurements: 5 speed + 5 memory + 3 vendor (real workflows).\n\n")
+        f.write("14 measurements: 6 speed + 5 memory + 3 vendor (real workflows).\n\n")
 
         def fmt(d, key, unit):
             if not isinstance(d, dict):
@@ -577,11 +576,11 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
 def main():
     ap = argparse.ArgumentParser()
     tier = ap.add_mutually_exclusive_group()
-    tier.add_argument("--quick", action="store_true", help="run only the 6 quick benchmarks")
+    tier.add_argument("--quick", action="store_true", help="run only the 7 quick benchmarks")
     tier.add_argument(
         "--long",
         action="store_true",
-        help="run all 13 benchmarks (quick + long + vendor). Same as no flag.",
+        help="run all 14 benchmarks (quick + long + vendor). Same as no flag.",
     )
     tier.add_argument(
         "--vendor-only",
