@@ -1,0 +1,74 @@
+name: Benchmarks
+
+# Weekly scheduled run uses the full (long) tier — see issue #7.
+# Manual dispatch lets you pick `quick` (default) or `long` from the Actions tab.
+
+on:
+  schedule:
+    # Monday 06:00 UTC — runs the full 10-benchmark suite.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: "Benchmark tier to run"
+        type: choice
+        default: quick
+        options:
+          - quick
+          - long
+
+jobs:
+  benchmark:
+    name: Run benchmarks (${{ github.event_name == 'schedule' && 'long' || inputs.tier }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Build scvelo-rs wheel (release)
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --out dist --interpreter 3.12
+
+      - name: Install scvelo-rs + benchmark deps
+        shell: bash
+        run: |
+          pip install --force-reinstall dist/*.whl
+          pip install scvelo scanpy psutil py-cpuinfo
+
+      - name: Run benchmarks
+        shell: bash
+        run: |
+          TIER="${{ github.event_name == 'schedule' && 'long' || inputs.tier }}"
+          echo "Tier: $TIER"
+          if [ "$TIER" = "quick" ]; then
+            python notebooks/02_benchmarks.py --quick
+          else
+            python notebooks/02_benchmarks.py --long
+          fi
+
+      - name: Upload benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks-${{ github.event_name == 'schedule' && 'long' || inputs.tier }}-${{ github.run_id }}
+          path: notebooks/_artifacts/
+          retention-days: 90
