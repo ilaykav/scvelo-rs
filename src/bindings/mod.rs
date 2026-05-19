@@ -17,6 +17,7 @@ pub fn register(m: &Bound<'_, PyModule>) -> PyResult<()> {
         projection::splicing_dynamics_eval_kernel,
         m
     )?)?;
+    m.add_function(wrap_pyfunction!(projection::compute_dynamics_kernel, m)?)?;
     m.add_function(wrap_pyfunction!(projection::project_to_curve_kernel, m)?)?;
     m.add_function(wrap_pyfunction!(projection::assign_timepoints_kernel, m)?)?;
     m.add_function(wrap_pyfunction!(alignment::align_dynamics_kernel, m)?)?;

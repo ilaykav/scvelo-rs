@@ -1,9 +1,9 @@
-"""Benchmark suite — 13 measurements across speed, memory, and vendor categories.
+"""Benchmark suite — 14 measurements across speed, memory, and vendor categories.
 
 Run as a script:
     python notebooks/02_benchmarks.py [--quick | --long | --vendor-only]
 
-  --quick         run only the 6 quick benchmarks (~15 min on GH 2-core).
+  --quick         run only the 7 quick benchmarks (~15 min on GH 2-core).
   --long          run all benchmarks including 3 vendor workflows (~6-12 h).
   --vendor-only   run only the 3 vendor (real-world) workflows.
   (default)       same as --long.
@@ -16,6 +16,7 @@ Outputs `notebooks/_artifacts/benchmark_table.md` and `_artifacts/benchmark_resu
     speed_velocity_graph_20k         — 20k × 100  quick
     speed_full_pipeline_50k          — 50k × 100  LONG
     speed_recover_dynamics_100k      — 100k × 30  LONG
+    speed_compute_dynamics_5k        — 5k × 50    quick  (per-gene closed-form eval)
 
   Memory (peak heap):
     mem_recover_dynamics_5k          — 5k × 50    quick
@@ -184,6 +185,16 @@ def _run_ops(lib, adata, ops: list[str]):
             if "velocity" not in adata.layers:
                 lib.tl.velocity(adata, mode="deterministic")
             lib.tl.velocity_graph(adata, show_progress_bar=False)
+        elif op == "compute_dynamics":
+            # Per-gene closed-form evaluation across every fitted gene.
+            # Requires `recover_dynamics` (or fitted vars) to be present.
+            fitted = [
+                g
+                for g in adata.var_names
+                if "fit_alpha" in adata.var.keys() and not np.isnan(adata.var.loc[g, "fit_alpha"])
+            ]
+            for g in fitted:
+                lib.utils.compute_dynamics(adata, g, key="fit")
         else:
             raise ValueError(f"unknown op {op!r}")
 
@@ -205,6 +216,9 @@ class Bench:
     ops: list[str] = field(default_factory=list)
     # When set, dispatch to `vendor.workflows.<workflow>.run` instead of `_run_ops`.
     workflow: str | None = None
+    # Operations to run before the timed window (e.g. recover_dynamics warm-up
+    # for compute_dynamics benchmarks). Skipped when empty.
+    pre_ops: list[str] = field(default_factory=list)
     description: str = ""
     skip_scvelo_above: int | None = None  # if n_cells exceeds this, expect scvelo to OOM
     # When True, the scvelo run is skipped entirely (documented OOM/timeout)
@@ -263,6 +277,18 @@ BENCHMARKS: list[Bench] = [
         n_genes=30,
         ops=["recover_dynamics"],
         description="recover_dynamics at atlas scale, 100k cells",
+    ),
+    Bench(
+        name="speed_compute_dynamics_5k",
+        category="speed",
+        long=False,
+        n_cells=5_000,
+        n_genes=50,
+        pre_ops=["recover_dynamics"],
+        ops=["compute_dynamics"],
+        description=(
+            "per-gene compute_dynamics over all fitted genes; recover_dynamics is untimed warm-up"
+        ),
     ),
     # === MEMORY (5) ===
     Bench(
@@ -355,9 +381,9 @@ BENCHMARKS: list[Bench] = [
     ),
 ]
 
-assert len(BENCHMARKS) == 13
+assert len(BENCHMARKS) == 14
 assert sum(1 for b in BENCHMARKS if b.long) == 7
-assert sum(1 for b in BENCHMARKS if b.category == "speed") == 5
+assert sum(1 for b in BENCHMARKS if b.category == "speed") == 6
 assert sum(1 for b in BENCHMARKS if b.category == "memory") == 5
 assert sum(1 for b in BENCHMARKS if b.category == "vendor") == 3
 
@@ -421,6 +447,11 @@ def run_one(bench: Bench) -> dict:
             continue
 
         a = base.copy()
+        if bench.pre_ops:
+            # Untimed warm-up (e.g. recover_dynamics before compute_dynamics).
+            # Uses the same backend so the timed call exercises that backend's
+            # downstream consumers on its own fitted state.
+            _run_ops(lib, a, bench.pre_ops)
         if bench.workflow is not None:
             wall, peak_mb, ok, _ = measure(timed_fn, *timed_args, lib, a)
         else:
@@ -469,7 +500,7 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
             "numbers illustrate the gap rather than serving as a hardware-neutral "
             "benchmark.\n\n"
         )
-        f.write("13 measurements: 5 speed + 5 memory + 3 vendor (real workflows).\n\n")
+        f.write("14 measurements: 6 speed + 5 memory + 3 vendor (real workflows).\n\n")
 
         def fmt(d, key, unit):
             if not isinstance(d, dict):
@@ -545,11 +576,11 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
 def main():
     ap = argparse.ArgumentParser()
     tier = ap.add_mutually_exclusive_group()
-    tier.add_argument("--quick", action="store_true", help="run only the 6 quick benchmarks")
+    tier.add_argument("--quick", action="store_true", help="run only the 7 quick benchmarks")
     tier.add_argument(
         "--long",
         action="store_true",
-        help="run all 13 benchmarks (quick + long + vendor). Same as no flag.",
+        help="run all 14 benchmarks (quick + long + vendor). Same as no flag.",
     )
     tier.add_argument(
         "--vendor-only",

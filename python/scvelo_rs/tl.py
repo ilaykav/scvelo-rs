@@ -20,18 +20,12 @@ _OVERRIDDEN = {
     "velocity",
     "velocity_graph",
     "velocity_embedding",
-    "recover_latent_time",
 }
 
 
 # TODO(#5): port to Rust.
 def velocity_embedding(*args, **kwargs):
     return _scv.tl.velocity_embedding(*args, **kwargs)
-
-
-# TODO(#4): port to Rust.
-def recover_latent_time(*args, **kwargs):
-    return _scv.tl.recover_latent_time(*args, **kwargs)
 
 
 for _name in dir(_scv.tl):

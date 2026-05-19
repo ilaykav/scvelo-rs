@@ -6,6 +6,8 @@ automatically.
 
 import scvelo as _scv
 
+from ._compute_dynamics import compute_dynamics  # noqa: F401
+
 _OVERRIDDEN = {
     "compute_velocity_on_grid",
     "compute_dynamics",
@@ -15,11 +17,6 @@ _OVERRIDDEN = {
 # TODO(#5): port to Rust.
 def compute_velocity_on_grid(*args, **kwargs):
     return _scv.utils.compute_velocity_on_grid(*args, **kwargs)
-
-
-# TODO(#4): port to Rust.
-def compute_dynamics(*args, **kwargs):
-    return _scv.utils.compute_dynamics(*args, **kwargs)
 
 
 for _name in dir(_scv.utils):
