@@ -13,8 +13,13 @@ Rust implementation of heavy-weight bottlenecks like `recover_dynamics` & `veloc
 
 ## Highlights
 
-- **30–40× faster** than the original scVelo on representative atlases (5k–100k
-  cells), and **~2–4× lower peak memory**. See [Benchmarks](#benchmarks).
+- **End-to-end on real workflows.** The canonical scvelo Pancreas tutorial
+  (3,696 cells, full pipeline incl. PCA, KNN, latent time) runs **11.5×
+  faster** — 15 min on stock scvelo becomes 1.3 min on scvelo-rs. The Rust
+  `recover_dynamics` kernel is doing the heavy lifting (~160× isolated);
+  the remaining workflow time is preprocessing and downstream analysis
+  that pass through unchanged. See [Benchmarks](#benchmarks) and
+  [`vendor/`](vendor/) for the full end-to-end numbers.
 - **Bit-exact** equivalence to scVelo on 99.9% of genes — the residual
   drift is at f64 ULP scale (per-gene Pearson r = 1.0000 across
   `fit_alpha`, `fit_beta`, `fit_gamma`, `fit_t_`).
@@ -32,7 +37,7 @@ import scvelo_rs as scv
 
 adata = scv.datasets.pancreas()
 scv.pp.filter_and_normalize(adata); scv.pp.moments(adata)
-scv.tl.recover_dynamics(adata)            # ~35× faster than the original scvelo
+scv.tl.recover_dynamics(adata)
 scv.tl.velocity(adata, mode="dynamical")
 scv.tl.velocity_graph(adata)
 scv.pl.velocity_embedding_stream(adata, basis="umap")
@@ -114,6 +119,30 @@ runners (2 cores) will show smaller speedups — these numbers illustrate the ga
 rather than serving as a hardware-neutral benchmark. The full suite lives in
 [`notebooks/02_benchmarks.py`](notebooks/02_benchmarks.py) and stamps the runner's
 CPU/RAM into the regenerated table automatically.
+
+### Real-world end-to-end workflows
+
+The numbers below come from running the official scvelo Pancreas tutorial
+end-to-end — preprocessing, `recover_dynamics`, `velocity`, `velocity_graph`,
+and `latent_time` — on both backends with identical input. This is what a user
+sees when they swap `import scvelo as scv` for `import scvelo_rs as scv` on
+their actual workflow, not a microbench of one kernel.
+
+| workflow | cells | genes (HVGs) | scvelo | scvelo-rs | end-to-end speedup |
+|---|---:|---:|---:|---:|---:|
+| Pancreas tutorial (Bastidas-Ponce 2019) | 3,696 | 2,000 | **919 s** (~15 min) | **80 s** (~1.3 min) | **11.5×** |
+
+CellRank-2 hematopoiesis (24k cells) and Pijuan-Sala 2019 mouse gastrulation
+atlas (116k cells) workflows are scaffolded in [`vendor/workflows/`](vendor/)
+and run on the weekly CI cron. At atlas scale stock scvelo is documented to
+OOM/time out (scvelo issues #247, #756, #405); the bench reports those as
+`SKIPPED` and produces a scvelo-rs-only number.
+
+### Microbenchmarks (synthetic atlases)
+
+These isolate individual kernels and skip the non-accelerated parts of a
+real workflow. Useful for understanding *where* the time goes; less
+representative of end-to-end user experience than the table above.
 
 ### Wall time
 
