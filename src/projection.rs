@@ -201,8 +201,15 @@ pub fn compute_dynamics_eval(
     debug_assert_eq!(t.len(), out_s.len());
 
     let g_minus_b = gamma - beta;
+    // Sign-preserving guard: gamma == beta is degenerate; bump by tiny epsilon
+    // keeping the sign so the resulting `c = (alpha - u0*beta) / safe_gmb`
+    // does not silently flip when gamma < beta + |eps|.
     let safe_gmb = if g_minus_b.abs() < 1e-300 {
-        1e-300
+        if g_minus_b < 0.0 {
+            -1e-300
+        } else {
+            1e-300
+        }
     } else {
         g_minus_b
     };
@@ -234,8 +241,7 @@ pub fn compute_dynamics_eval(
         let c = (alpha_eff - u0_eff * beta) / safe_gmb;
 
         let u_raw = u0_eff * expu + alpha_eff_over_beta * (1.0 - expu);
-        let s_raw =
-            s0_eff * exps + alpha_eff_over_gamma * (1.0 - exps) + c * (exps - expu);
+        let s_raw = s0_eff * exps + alpha_eff_over_gamma * (1.0 - exps) + c * (exps - expu);
         (alpha_eff, u_raw * scaling + u0_offset, s_raw + s0_offset)
     };
 

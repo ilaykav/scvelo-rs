@@ -36,8 +36,8 @@ pub fn compute_dynamics_kernel<'py>(
     let mut s_out = vec![0.0f64; n];
     py.allow_threads(|| {
         projection::compute_dynamics_eval(
-            t_slice, t_, alpha, beta, gamma, scaling, u0_offset, s0_offset,
-            &mut a_out, &mut u_out, &mut s_out, parallel,
+            t_slice, t_, alpha, beta, gamma, scaling, u0_offset, s0_offset, &mut a_out, &mut u_out,
+            &mut s_out, parallel,
         );
     });
     Ok((

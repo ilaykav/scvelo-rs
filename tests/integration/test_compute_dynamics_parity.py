@@ -17,7 +17,6 @@ warnings.filterwarnings("ignore")
 
 _DATA_DIR = Path(__file__).parent.parent / "_data"
 
-ULP_REL = 1e-12   # f64 ULP-noise floor
 TIGHT_REL = 1e-9  # tightly-equivalent threshold
 
 
@@ -64,12 +63,8 @@ def test_compute_dynamics_matches_scvelo(fitted_adata, sort_t):
 
     failures = []
     for gene in genes[:10]:
-        a_scv, u_scv, s_scv = scv.utils.compute_dynamics(
-            fitted_adata, gene, key="fit", sort=sort_t
-        )
-        a_rs, u_rs, s_rs = scvr.utils.compute_dynamics(
-            fitted_adata, gene, key="fit", sort=sort_t
-        )
+        a_scv, u_scv, s_scv = scv.utils.compute_dynamics(fitted_adata, gene, key="fit", sort=sort_t)
+        a_rs, u_rs, s_rs = scvr.utils.compute_dynamics(fitted_adata, gene, key="fit", sort=sort_t)
 
         for name, scv_v, rs_v in (("alpha", a_scv, a_rs), ("u", u_scv, u_rs), ("s", s_scv, s_rs)):
             n, max_abs, max_rel = _drift(scv_v, rs_v)
