@@ -11,7 +11,7 @@ backported.
 Please **do not** open a public GitHub issue for security reports. Email
 the maintainer directly:
 
-- **Ilay Kavitzky** — ilay.kavitzky@gmail.com
+- **Ilay Kavitzky** - ilay.kavitzky@gmail.com
 
 Reasonable expectations:
 
@@ -21,7 +21,7 @@ Reasonable expectations:
 
 ## Scope
 
-`scvelo-rs` is a numerical kernel — it processes user-supplied arrays and
+`scvelo-rs` is a numerical kernel - it processes user-supplied arrays and
 sparse matrices, not network input. The realistic threat surface is:
 
 - Memory-safety bugs in the Rust kernels (panics, out-of-bounds, use-after-free)
@@ -29,5 +29,5 @@ sparse matrices, not network input. The realistic threat surface is:
 - Build-supply-chain compromises (Cargo or PyPI dependencies)
 
 Anything in those categories qualifies. Numerical drift vs upstream
-scVelo is a **parity** issue, not a security one — please use the
+scVelo is a **parity** issue, not a security one - please use the
 [parity issue template](.github/ISSUE_TEMPLATE/parity_issue.md) for those.

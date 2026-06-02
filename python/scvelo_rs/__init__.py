@@ -15,11 +15,11 @@ everything else passes through to scvelo unchanged. Patch-style adoption
 also works:
 
     import scvelo as scv
-    import scvelo_rs.patch  # noqa: F401  — scv.tl.recover_dynamics et al. now Rust
+    import scvelo_rs.patch  # noqa: F401  - scv.tl.recover_dynamics et al. now Rust
 """
 
-# Submodule namespaces — `tl`, `pp`, `pl`, `datasets`, `utils` mirror scvelo.
-# Top-level scvelo helpers — exposed as `scvelo_rs.<name>` to mirror `scv.<name>`.
+# Submodule namespaces - `tl`, `pp`, `pl`, `datasets`, `utils` mirror scvelo.
+# Top-level scvelo helpers - exposed as `scvelo_rs.<name>` to mirror `scv.<name>`.
 import scvelo as _scv
 
 from . import datasets, pl, pp, tl, utils

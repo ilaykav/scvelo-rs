@@ -224,7 +224,7 @@ def recover_dynamics(
     )
 
     # Layer smoothing: use `get_connectivities(adata)` (row-normalized) NOT raw
-    # `adata.obsp["connectivities"]` (row sums 5-15) — scvelo's recover_dynamics
+    # `adata.obsp["connectivities"]` (row sums 5-15) - scvelo's recover_dynamics
     # uses the normalized version; the raw one would scale fit_t by 5-15×.
     layer_conn = None
     if fit_connected_states:
@@ -243,13 +243,12 @@ def recover_dynamics(
         conn=layer_conn,
     )
 
-    # We default `t_max=None → False` (skip alignment), unlike scvelo's
-    # `None → 20`. align_dynamics divides by `m = t_max/T_max` and amplifies
-    # any small drift in steady-state classification into 100%+ swings on
-    # outlier genes. Users wanting scvelo's t_max=20 semantics pass it
-    # explicitly.
+    # Match scvelo: `t_max=None → 20` (run align_dynamics). Tests that need
+    # the raw pre-align fit pass `t_max=False` explicitly. Phase 3.10 closed
+    # most of the per-gene NM drift, so align_dynamics no longer amplifies
+    # outliers into 100%+ swings the way it did in Phase 2.x.
     if t_max is None:
-        t_max = False
+        t_max = 20.0
 
     if t_max is not False:
         try:
@@ -349,13 +348,38 @@ def _extract_layers(adata, use_raw: bool):
     Ms = np.asarray(s_layer, dtype=np.float64, order="C")
     # Reject non-finite values up front. Our Rust sort comparators use
     # `partial_cmp(a, b).unwrap_or(Equal)` which doesn't form a total order
-    # in the presence of NaN — leads to a panic deep in the sort kernel.
+    # in the presence of NaN - leads to a panic deep in the sort kernel.
     if not np.isfinite(Mu).all() or not np.isfinite(Ms).all():
         raise ValueError(
             f"{u_key}/{s_key} contains NaN or inf values. Filter or impute "
             "non-finite entries before calling recover_dynamics."
         )
     return Mu, Ms
+
+
+def _velocity_genes_via_scvelo(adata) -> np.ndarray:
+    """Mirror scvelo.recover_dynamics's velocity_genes fallback.
+
+    scvelo's `recover_dynamics(var_names='velocity_genes')` with no
+    `velocity_genes` column computes a deterministic Velocity model with
+    `perc=[5, 95]` and uses its `_velocity_genes` boolean as the gene
+    filter (also writes back `adata.var['fit_r2'] = velo._r2`). Replicate
+    that exact path so we fit the same gene subset.
+    """
+    try:
+        from scvelo.tools.velocity import Velocity
+
+        velo = Velocity(adata, use_raw=False)
+        velo.compute_deterministic(perc=[5, 95])
+        adata.var["fit_r2"] = velo._r2
+        return np.asarray(velo._velocity_genes, dtype=bool)
+    except Exception as e:
+        warnings.warn(
+            f"scvelo Velocity-based gene filter failed ({e}); falling back to all genes. "
+            "Run scvelo.tl.velocity(adata) first to populate 'velocity_genes'.",
+            stacklevel=3,
+        )
+        return np.ones(adata.n_vars, dtype=bool)
 
 
 def _select_genes(adata, var_names, n_top_genes):
@@ -366,6 +390,11 @@ def _select_genes(adata, var_names, n_top_genes):
         if "velocity_genes" in adata.var:
             mask = adata.var["velocity_genes"].to_numpy().astype(bool)
             if not mask.any():
+                # Column exists but is all-False. Stock scvelo would no-op
+                # here (empty selection → early return), but a silent no-op
+                # pipeline is a footgun. Deviate deliberately: warn and fall
+                # back to all genes (codified in
+                # test_recover_dynamics_velocity_genes_all_false_warns).
                 warnings.warn(
                     "adata.var['velocity_genes'] is all False; falling back "
                     "to all genes. Run scvelo.tl.velocity(adata) first to "
@@ -374,12 +403,12 @@ def _select_genes(adata, var_names, n_top_genes):
                 )
                 mask = np.ones(n_vars, dtype=bool)
         else:
-            warnings.warn(
-                "'velocity_genes' not found; falling back to all genes. Run "
-                "scvelo.tl.velocity(adata) first to populate it.",
-                stacklevel=3,
-            )
-            mask = np.ones(n_vars, dtype=bool)
+            # scvelo's recover_dynamics computes deterministic velocity to
+            # populate velocity_genes when missing. Mirror that so a fresh
+            # `recover_dynamics(var_names='velocity_genes')` call fits the
+            # SAME gene subset as stock scvelo (otherwise we fit ALL genes
+            # while scvelo fits only the velocity-filtered subset → drift).
+            mask = _velocity_genes_via_scvelo(adata)
     elif isinstance(var_names, (list, tuple, np.ndarray)):
         if len(var_names) == 0:
             raise ValueError(
@@ -469,7 +498,7 @@ def _initialize_all_genes(
     fit_connected_states,
     steady_state_prior,
 ):
-    """Fallback init via scvelo's Python `DynamicsRecovery` — only used when
+    """Fallback init via scvelo's Python `DynamicsRecovery` - only used when
     `steady_state_prior` is set (rare). Default path uses the Rust kernel."""
     try:
         from scvelo.tools._em_model_core import DynamicsRecovery
@@ -575,45 +604,66 @@ def _write_var_columns(
     steady_s=None,
 ):
     n_vars = adata.n_vars
-    nan = np.full(n_vars, np.nan, dtype=np.float64)
 
-    def _scatter(values):
-        out = nan.copy()
+    def _scatter(col_name, values, default_fill=np.nan):
+        """Mirror scvelo: read existing column (if any) and only OVERWRITE
+        positions in gene_mask. Without this, a second recover_dynamics call
+        with a smaller var_names list wipes the previous fit for the genes
+        outside the list (scvelo preserves them via `_read_pars` + targeted
+        index assignment)."""
+        if col_name in adata.var.columns:
+            out = np.asarray(adata.var[col_name].values, dtype=np.float64).copy()
+        else:
+            out = np.full(n_vars, default_fill, dtype=np.float64)
         if values is not None:
             out[gene_mask] = values
         return out
 
-    adata.var["fit_alpha"] = _scatter(alpha)
-    adata.var["fit_beta"] = _scatter(beta)
-    adata.var["fit_gamma"] = _scatter(gamma)
-    adata.var["fit_t_"] = _scatter(t_)
-    adata.var["fit_scaling"] = _scatter(scaling)
-    adata.var["fit_likelihood"] = _scatter(likelihood)
-    adata.var["fit_variance"] = _scatter(variance)
-    adata.var["fit_std_u"] = _scatter(std_u)
-    adata.var["fit_std_s"] = _scatter(std_s)
+    adata.var["fit_alpha"] = _scatter("fit_alpha", alpha)
+    adata.var["fit_beta"] = _scatter("fit_beta", beta)
+    adata.var["fit_gamma"] = _scatter("fit_gamma", gamma)
+    adata.var["fit_t_"] = _scatter("fit_t_", t_)
+    adata.var["fit_scaling"] = _scatter("fit_scaling", scaling)
+    adata.var["fit_likelihood"] = _scatter("fit_likelihood", likelihood)
+    adata.var["fit_variance"] = _scatter("fit_variance", variance)
+    adata.var["fit_std_u"] = _scatter("fit_std_u", std_u)
+    adata.var["fit_std_s"] = _scatter("fit_std_s", std_s)
     # scvelo's dm.u0/s0 are 0 unless fit_basal_transcription=True (unsupported).
-    adata.var["fit_u0"] = _scatter(np.zeros_like(alpha))
-    adata.var["fit_s0"] = _scatter(np.zeros_like(alpha))
-    adata.var["fit_pval_steady"] = _scatter(pval_steady)
-    adata.var["fit_steady_u"] = _scatter(steady_u)
-    adata.var["fit_steady_s"] = _scatter(steady_s)
+    adata.var["fit_u0"] = _scatter("fit_u0", np.zeros_like(alpha))
+    adata.var["fit_s0"] = _scatter("fit_s0", np.zeros_like(alpha))
+    adata.var["fit_pval_steady"] = _scatter("fit_pval_steady", pval_steady)
+    adata.var["fit_steady_u"] = _scatter("fit_steady_u", steady_u)
+    adata.var["fit_steady_s"] = _scatter("fit_steady_s", steady_s)
 
 
 def _write_layers(adata, *, gene_mask, fit_t_sub, fit_tau_sub, fit_tau__sub, conn):
     """Scatter (n_cells, n_fit_genes) sub-arrays into full (n_cells, n_vars)
-    layers. Apply connectivity smoothing on `fit_t` only (matches scvelo)."""
+    layers. Apply connectivity smoothing on `fit_t` only (matches scvelo).
+
+    Preserves existing layer values for genes outside `gene_mask` (scvelo's
+    second-call behaviour - without this, a 2nd recover_dynamics on a
+    smaller var_names list wipes the rest of the layer to NaN).
+    """
     n_cells = adata.n_obs
     n_vars = adata.n_vars
 
-    def _scatter_2d(sub):
-        out = np.full((n_cells, n_vars), np.nan, dtype=np.float64)
+    def _scatter_2d(layer_name, sub):
+        if layer_name in adata.layers:
+            existing = adata.layers[layer_name]
+            if hasattr(existing, "toarray"):
+                existing = existing.toarray()
+            out = np.asarray(existing, dtype=np.float64).copy()
+            # Resize if shape doesn't match (e.g., earlier non-fit-shape).
+            if out.shape != (n_cells, n_vars):
+                out = np.full((n_cells, n_vars), np.nan, dtype=np.float64)
+        else:
+            out = np.full((n_cells, n_vars), np.nan, dtype=np.float64)
         out[:, gene_mask] = sub
         return out
 
-    fit_t_full = _scatter_2d(fit_t_sub)
-    fit_tau_full = _scatter_2d(fit_tau_sub)
-    fit_tau__full = _scatter_2d(fit_tau__sub)
+    fit_t_full = _scatter_2d("fit_t", fit_t_sub)
+    fit_tau_full = _scatter_2d("fit_tau", fit_tau_sub)
+    fit_tau__full = _scatter_2d("fit_tau_", fit_tau__sub)
 
     if conn is not None and conn is not False:
         smoothed = np.array(fit_t_full)

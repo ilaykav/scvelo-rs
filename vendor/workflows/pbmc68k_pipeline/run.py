@@ -1,28 +1,21 @@
-"""Mouse gastrulation atlas - atlas-scale scvelo dynamical pipeline.
+"""PBMC 68k pipeline - Zheng 2017 frozen PBMCs, full scvelo dynamical workflow.
 
-Atlas-scale (~116,000 cells) workflow that follows the standard scvelo
-dynamical-model shape on the Pijuan-Sala 2019 dataset. The bench harness
-skips the stock-scvelo run here (documented OOM/timeout); only scvelo-rs
-is timed.
-
-BSD-3-Clause; see ./LICENSE.
+Heavy mid-large benchmark (~68k cells immune compartment). BSD-3-Clause;
+see ./README.md for citation and license.
 """
 
 from __future__ import annotations
 
 
 def load_data():
-    """Fetch the Pijuan-Sala 2019 mouse gastrulation atlas (~400 MB, cached)."""
+    """Fetch the Zheng 2017 PBMC 68k dataset (cached under ~/.scvelo)."""
     import scvelo as scv
 
-    return scv.datasets.gastrulation()
+    return scv.datasets.pbmc68k()
 
 
 def run(lib, adata) -> None:
-    """Execute the dynamical pipeline at atlas scale in-place."""
-    # Preprocessing: split filter_and_normalize and use scanpy for HVGs
-    # because scvelo 0.3.4's combined helper forwards n_top_genes
-    # incorrectly through **kwargs.
+    """Execute the full dynamical-model pipeline in-place on `adata`."""
     import numpy as np
     import scanpy as sc
 
@@ -38,3 +31,4 @@ def run(lib, adata) -> None:
     lib.tl.recover_dynamics(adata, n_jobs=1, show_progress_bar=False)
     lib.tl.velocity(adata, mode="dynamical")
     lib.tl.velocity_graph(adata, show_progress_bar=False)
+    lib.tl.latent_time(adata)

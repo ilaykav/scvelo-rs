@@ -1,9 +1,9 @@
-"""Rust-backed `scv.tl.differential_kinetic_test`.
+"""Rust-backed bit-exact `scv.tl.differential_kinetic_test`.
 
-Mirrors scvelo's public API but moves the per-gene (per-cluster) LRT
-into Rust. The Rust kernel calls `assign_timepoints` once per gene
-(bit-exact match to scvelo's `compute_divergence(mode='assign_timepoints')`),
-then slices by cluster to compute distx sums + orth_distx + p-values.
+The Rust kernel mirrors scvelo's `DynamicsRecovery.differential_kinetic_test`
+per gene exactly - `initialize_diff_kinetics` (weights/std/outside_of_trajectory),
+`get_variance`, `get_cluster_mse`, `get_orth_fit`, `get_pval_diff_kinetics` -
+sliced by cluster mask. The Python side only marshalls arrays.
 """
 
 from __future__ import annotations
@@ -25,12 +25,21 @@ def _ensure_velocity_genes(adata) -> np.ndarray:
 
 
 def _get_connectivity_triplet(adata):
-    """Return (data, indices, indptr) tuple (f64, i32, i32) from
-    adata.obsp['connectivities'] CSR matrix, or (None, None, None)."""
-    obsp = getattr(adata, "obsp", None)
-    if obsp is None or "connectivities" not in obsp.keys():
+    """Build the SAME connectivity matrix scvelo uses inside `dm.connectivities`.
+
+    `get_connectivities(adata)` row-normalizes the kNN adjacency and adds a
+    self-loop. Raw `adata.obsp["connectivities"]` has row sums of 5-15 and
+    no self-loops, so using it directly produces a completely different
+    smoothing kernel (compute_divergence's argmin then disagrees with scvelo).
+    """
+    try:
+        from scvelo.preprocessing.moments import get_connectivities
+
+        conn = get_connectivities(adata)
+    except Exception:
         return None, None, None
-    conn = obsp["connectivities"]
+    if conn is None or conn is False:
+        return None, None, None
     if not hasattr(conn, "tocsr"):
         return None, None, None
     csr = conn.tocsr()
@@ -41,20 +50,36 @@ def _get_connectivity_triplet(adata):
     )
 
 
+def _resolve_var_idx(adata, var_names, add_key) -> np.ndarray:
+    """Replicate scvelo's var_names resolution path."""
+    if isinstance(var_names, str):
+        if var_names == "velocity_genes":
+            return np.where(_ensure_velocity_genes(adata))[0]
+        if var_names == "all":
+            return np.arange(adata.n_vars)
+        if var_names in adata.var.columns:
+            return np.where(adata.var[var_names].values.astype(bool))[0]
+        if var_names in adata.var_names:
+            return np.array([adata.var_names.get_loc(var_names)])
+        raise ValueError(f"var_names={var_names!r} not found")
+    return np.array([adata.var_names.get_loc(g) for g in var_names])
+
+
 def differential_kinetic_test(
-    adata,
+    data,
     var_names="velocity_genes",
     groupby=None,
-    use_raw: bool = False,
+    use_raw=None,
+    return_model=None,
     add_key: str = "fit",
-    copy: bool = False,
+    copy=None,
     min_cells: int = 10,
     **kwargs,
 ):
-    """Drop-in for `scvelo.tl.differential_kinetic_test`. Rust-backed."""
-    adata = adata.copy() if copy else adata
+    """Drop-in for `scvelo.tl.differential_kinetic_test`. Rust-backed, bit-exact."""
+    adata = data.copy() if copy else data
 
-    # Resolve groupby
+    # Resolve groupby (matches scvelo's fallback chain).
     if groupby is None:
         if "clusters" in adata.obs.columns:
             groupby = "clusters"
@@ -65,22 +90,7 @@ def differential_kinetic_test(
     if groupby not in adata.obs.columns:
         raise ValueError(f"obs column {groupby!r} not found")
 
-    # Resolve var_names
-    if isinstance(var_names, str):
-        if var_names == "velocity_genes":
-            mask = _ensure_velocity_genes(adata)
-            var_idx = np.where(mask)[0]
-        elif var_names == "all":
-            var_idx = np.arange(adata.n_vars)
-        elif var_names in adata.var.columns:
-            var_idx = np.where(adata.var[var_names].values.astype(bool))[0]
-        elif var_names in adata.var_names:
-            var_idx = np.array([adata.var_names.get_loc(var_names)])
-        else:
-            raise ValueError(f"var_names={var_names!r} not found")
-    else:
-        var_idx = np.array([adata.var_names.get_loc(g) for g in var_names])
-
+    var_idx = _resolve_var_idx(adata, var_names, add_key)
     if f"{add_key}_alpha" not in adata.var.columns:
         raise ValueError(
             f"recover_dynamics must run before differential_kinetic_test "
@@ -92,17 +102,19 @@ def differential_kinetic_test(
     if n_genes == 0:
         raise ValueError("no fitted genes to test")
 
-    n_cells = adata.n_obs
-
-    # Cluster assignment as i32
+    # Cluster assignment.
     clusters_series = adata.obs[groupby]
     if not isinstance(clusters_series.dtype, pd.CategoricalDtype):
         clusters_series = clusters_series.astype("category")
     cluster_cats = list(clusters_series.cat.categories)
     n_clusters = len(cluster_cats)
-    cluster_assign = np.ascontiguousarray(clusters_series.cat.codes.values, dtype=np.int32)
+    cluster_assign = np.ascontiguousarray(
+        clusters_series.cat.codes.values, dtype=np.int32
+    )
 
-    # Per-gene fit params
+    # Per-gene fit params. scvelo's load_pars stores beta as fit_beta /
+    # scaling (line 585 of _em_model_core.py); load_pars then multiplies
+    # back to recover the internal beta. We pass the internal beta to Rust.
     def _get_var(col, default=None):
         if col in adata.var.columns:
             return np.ascontiguousarray(
@@ -113,89 +125,65 @@ def differential_kinetic_test(
         return np.full(n_genes, default, dtype=np.float64)
 
     alpha = _get_var(f"{add_key}_alpha")
-    beta = _get_var(f"{add_key}_beta")
+    fit_beta = _get_var(f"{add_key}_beta")
     gamma = _get_var(f"{add_key}_gamma")
     scaling = _get_var(f"{add_key}_scaling", default=1.0)
     t_ = _get_var(f"{add_key}_t_")
-    std_u = _get_var(f"{add_key}_std_u", default=1.0)
-    std_s = _get_var(f"{add_key}_std_s", default=1.0)
-    if f"{add_key}_variance" in adata.var.columns:
-        varx = _get_var(f"{add_key}_variance", default=1.0)
-    else:
-        varx = np.ones(n_genes, dtype=np.float64)
+    beta_internal = fit_beta * scaling  # matches load_pars
 
-    # u0_ = u(t_, 0, alpha, beta), s0_ = s(t_, 0, 0, alpha, beta, gamma).
-    # Sign-preserving guard against gamma == beta degenerate case.
-    expu_t = np.exp(-beta * t_)
-    exps_t = np.exp(-gamma * t_)
-    u0_ = (alpha / beta) * (1.0 - expu_t)
-    g_minus_b = gamma - beta
-    g_minus_b = np.where(np.abs(g_minus_b) < 1e-300, np.sign(g_minus_b) * 1e-300 + 1e-300, g_minus_b)
-    c_switch = alpha / g_minus_b
-    s0_ = (alpha / gamma) * (1.0 - exps_t) + c_switch * (exps_t - expu_t)
-
-    # Per-cell Mu/Ms slices, then u_scaled = Mu / scaling per gene
+    # Raw Mu, Ms. scvelo's `load_pars` reads adata.layers["Mu"][:, idx] (or
+    # "unspliced" with use_raw=True). The Rust kernel does u/scaling internally.
     if use_raw:
         u_layer, s_layer = "unspliced", "spliced"
     else:
         u_layer = "Mu" if "Mu" in adata.layers else "unspliced"
         s_layer = "Ms" if "Ms" in adata.layers else "spliced"
+    u_raw = np.ascontiguousarray(adata.layers[u_layer][:, var_idx], dtype=np.float64)
+    s_raw = np.ascontiguousarray(adata.layers[s_layer][:, var_idx], dtype=np.float64)
 
-    Mu = np.ascontiguousarray(adata.layers[u_layer][:, var_idx], dtype=np.float64)
-    Ms = np.ascontiguousarray(adata.layers[s_layer][:, var_idx], dtype=np.float64)
-    u_scaled = np.ascontiguousarray(Mu / scaling[np.newaxis, :], dtype=np.float64)
-
-    # Base weights: cells with valid moments (matches scvelo's initialize_weights
-    # for `weighted=False` mode after recover_dynamics has run).
-    weights = np.isfinite(Mu) & np.isfinite(Ms) & (Mu > 0) & (Ms > 0)
-    weights = np.ascontiguousarray(weights, dtype=bool)
-
-    # Connectivities for compute_divergence smoothing inside assign_timepoints
     conn_data, conn_indices, conn_indptr = _get_connectivity_triplet(adata)
 
-    # Call Rust kernel
     pvals = _kernel(
-        u_scaled,
-        Ms,
-        weights,
+        u_raw,
+        s_raw,
         alpha,
-        beta,
+        beta_internal,
         gamma,
         scaling,
         t_,
-        u0_,
-        s0_,
-        std_u,
-        std_s,
-        varx,
         cluster_assign,
         n_clusters,
         min_cells,
-        True,  # fit_steady_states
         conn_data,
         conn_indices,
         conn_indptr,
     )  # (n_genes, n_clusters)
 
-    # Write back to adata
-    full_pvals = np.full((adata.n_vars, n_clusters), np.nan, dtype=np.float64)
-    full_pvals[var_idx, :] = pvals
-    adata.varm["fit_pvals_kinetics"] = full_pvals
+    # Writeback - matches scvelo's exact var/varm/uns schema.
+    # scvelo stores varm["fit_pvals_kinetics"] as an (n_vars,) recarray of
+    # float32 per-cluster fields (one field per cluster category).
+    full_pvals_f32 = np.full((adata.n_vars, n_clusters), np.nan, dtype=np.float32)
+    full_pvals_f32[var_idx, :] = pvals.astype(np.float32)
+    dtype = [(str(name), "float32") for name in cluster_cats]
+    adata.varm[f"{add_key}_pvals_kinetics"] = np.rec.fromarrays(
+        full_pvals_f32.T, dtype=dtype
+    ).T
 
+    # var["fit_diff_kinetics"]: comma-separated list of significant cluster names.
     diff_str = np.empty(adata.n_vars, dtype=object)
+    diff_str[:] = None
     for j, vi in enumerate(var_idx):
-        sig_clusters = [
-            cluster_cats[c] for c in range(n_clusters) if pvals[j, c] < 1e-2
-        ]
-        diff_str[vi] = ",".join(map(str, sig_clusters)) if sig_clusters else ""
-    adata.var["fit_diff_kinetics"] = diff_str
+        sig = [cluster_cats[c] for c in range(n_clusters) if pvals[j, c] < 1e-2]
+        diff_str[vi] = ",".join(str(x) for x in sig) if sig else ""
+    adata.var[f"{add_key}_diff_kinetics"] = diff_str
 
+    # var["fit_pval_kinetics"]: max pval among significant clusters (NaN if none).
     pval_max = np.full(adata.n_vars, np.nan, dtype=np.float64)
     for j, vi in enumerate(var_idx):
         sig_mask = pvals[j, :] < 1e-2
         if sig_mask.any():
             pval_max[vi] = float(np.max(pvals[j, sig_mask]))
-    adata.var["fit_pval_kinetics"] = pval_max
+    adata.var[f"{add_key}_pval_kinetics"] = pval_max
 
     adata.uns.setdefault("recover_dynamics", {})["fit_diff_kinetics"] = groupby
 

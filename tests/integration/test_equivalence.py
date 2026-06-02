@@ -183,5 +183,5 @@ def test_determinism():
         nan_mask = np.isnan(v1) | np.isnan(v2)
         assert np.array_equal(np.isnan(v1), np.isnan(v2))
         assert np.array_equal(v1[~nan_mask], v2[~nan_mask]), (
-            f"{col}: non-deterministic — runs differ on {(v1 != v2)[~nan_mask].sum()} cells"
+            f"{col}: non-deterministic - runs differ on {(v1 != v2)[~nan_mask].sum()} cells"
         )

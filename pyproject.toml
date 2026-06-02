@@ -70,7 +70,7 @@ testpaths = ["tests"]
 markers = [
     "benchmark: long-running speedup benchmarks (opt in: pytest -m benchmark)",
 ]
-# Skip benchmarks by default — they take 60+ minutes.
+# Skip benchmarks by default - they take 60+ minutes.
 addopts = "-m 'not benchmark'"
 
 [tool.ruff]
@@ -91,7 +91,7 @@ select = [
     "UP",  # pyupgrade
 ]
 ignore = [
-    "E501",  # line too long — handled by formatter
+    "E501",  # line too long - handled by formatter
     "E741",  # ambiguous variable names (we use `o`, `t_` to mirror scvelo)
     "B008",  # function calls in defaults (allowed for AnnData ops)
 ]

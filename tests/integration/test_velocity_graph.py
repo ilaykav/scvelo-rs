@@ -1,4 +1,4 @@
-"""Bit-exact equivalence test for `velocity_graph` — runs scvelo's own
+"""Bit-exact equivalence test for `velocity_graph` - runs scvelo's own
 implementation alongside scvelo-rs's Rust kernel and asserts the per-cell
 cosine sparse matrix entries match.
 """

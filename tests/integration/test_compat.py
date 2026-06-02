@@ -1,4 +1,4 @@
-"""Compatibility tests — verify scvelo-rs behaves like scvelo for the
+"""Compatibility tests - verify scvelo-rs behaves like scvelo for the
 common usage patterns existing scvelo users have in their pipelines.
 
 Each test asserts a contract that an existing scvelo user would expect to
@@ -20,7 +20,7 @@ _DATA_DIR = Path(__file__).parent.parent / "_data"
 
 
 # ---------------------------------------------------------------------------
-# Public-surface compatibility — `scvelo_rs as scv` exposes same API shape.
+# Public-surface compatibility - `scvelo_rs as scv` exposes same API shape.
 # ---------------------------------------------------------------------------
 
 
@@ -68,7 +68,7 @@ def test_public_surface_matches_scvelo():
 
 
 def test_recover_dynamics_signature_matches_scvelo():
-    """Signature parity — every kwarg scvelo accepts, we accept (or `**kwargs`)."""
+    """Signature parity - every kwarg scvelo accepts, we accept (or `**kwargs`)."""
     import inspect
 
     import scvelo as scv
@@ -93,7 +93,7 @@ def test_recover_dynamics_signature_matches_scvelo():
 
 
 # ---------------------------------------------------------------------------
-# Patch path — applied/reverted cleanly, no leakage between tests.
+# Patch path - applied/reverted cleanly, no leakage between tests.
 # ---------------------------------------------------------------------------
 
 
@@ -110,7 +110,7 @@ def test_patch_apply_revert_idempotent():
 
     upstream_recover = scv.tl.recover_dynamics_original
 
-    # Apply twice — must be idempotent.
+    # Apply twice - must be idempotent.
     scvelo_rs.patch.apply(verbose=False)
     after_apply = scv.tl.recover_dynamics
     scvelo_rs.patch.apply(verbose=False)
@@ -144,7 +144,7 @@ def test_patch_covers_all_three_functions():
 
 
 # ---------------------------------------------------------------------------
-# Output-schema compatibility — adata fields downstream code depends on.
+# Output-schema compatibility - adata fields downstream code depends on.
 # ---------------------------------------------------------------------------
 
 
@@ -247,7 +247,7 @@ def test_velocity_graph_writes_csr():
 
 
 # ---------------------------------------------------------------------------
-# Stochastic mode pass-through — currently routed to scvelo upstream.
+# Stochastic mode pass-through - currently routed to scvelo upstream.
 # Make sure it still works (i.e., doesn't crash, produces a velocity layer).
 # ---------------------------------------------------------------------------
 
@@ -266,7 +266,7 @@ def test_velocity_stochastic_falls_through_cleanly(monkeypatch):
         called["vkey"] = kwargs.get("vkey")
         return None
 
-    # Patch both the original-preserved name and scv.tl.velocity itself —
+    # Patch both the original-preserved name and scv.tl.velocity itself -
     # _fallback_velocity prefers velocity_original if present.
     monkeypatch.setattr(scv.tl, "velocity_original", fake_scv_velocity, raising=False)
     monkeypatch.setattr(scv.tl, "velocity", fake_scv_velocity, raising=False)
@@ -277,7 +277,7 @@ def test_velocity_stochastic_falls_through_cleanly(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Downstream chains — recover_dynamics → velocity → velocity_graph
+# Downstream chains - recover_dynamics → velocity → velocity_graph
 # → transition_matrix → terminal_states → velocity_pseudotime should all run.
 # ---------------------------------------------------------------------------
 
@@ -302,7 +302,7 @@ def test_full_dynamical_pipeline_via_drop_in():
 
 
 # ---------------------------------------------------------------------------
-# Error handling — bad inputs should give clear errors, not segfaults.
+# Error handling - bad inputs should give clear errors, not segfaults.
 # ---------------------------------------------------------------------------
 
 
@@ -322,7 +322,7 @@ def test_recover_dynamics_missing_layers_raises():
 
 
 def test_recover_dynamics_unsupported_kwargs_raise():
-    """Unsupported kwargs must raise NotImplementedError — never silently
+    """Unsupported kwargs must raise NotImplementedError - never silently
     differ from scvelo's behavior."""
     import scvelo_rs
 
@@ -337,7 +337,7 @@ def test_recover_dynamics_unsupported_kwargs_raise():
 
 
 # ---------------------------------------------------------------------------
-# Determinism — same input twice must give bit-exact same output.
+# Determinism - same input twice must give bit-exact same output.
 # ---------------------------------------------------------------------------
 
 
@@ -367,7 +367,7 @@ def test_recover_dynamics_deterministic():
 
 
 # ---------------------------------------------------------------------------
-# Sparse-layer support — scvelo accepts sparse Mu/Ms; we must too.
+# Sparse-layer support - scvelo accepts sparse Mu/Ms; we must too.
 # ---------------------------------------------------------------------------
 
 
@@ -390,11 +390,11 @@ def test_recover_dynamics_handles_sparse_layers():
 
 
 # ---------------------------------------------------------------------------
-# var_names selectors — "all", "velocity_genes", explicit list.
+# var_names selectors - "all", "velocity_genes", explicit list.
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Regression tests — bugs surfaced and fixed by the compat suite.
+# Regression tests - bugs surfaced and fixed by the compat suite.
 # ---------------------------------------------------------------------------
 
 

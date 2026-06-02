@@ -1,4 +1,4 @@
-"""Port of c:/projects/scvelo/tests/test_basic.py — same assertions, run twice
+"""Port of c:/projects/scvelo/tests/test_basic.py - same assertions, run twice
 (once against stock scvelo, once with scvelo-rs's drop-in path), so we know
 that whatever scvelo's own tests verify is also verifiable for our path.
 
@@ -17,7 +17,7 @@ import scvelo as scv
 from scvelo.tools import ExpectationMaximizationModel
 
 # ---------------------------------------------------------------------------
-# test_einsum — identical to scvelo's. Runs once; same test under either path.
+# test_einsum - identical to scvelo's. Runs once; same test under either path.
 # ---------------------------------------------------------------------------
 
 
@@ -31,12 +31,12 @@ def test_einsum():
 
 
 # ---------------------------------------------------------------------------
-# test_dynamical_model — scvelo's own assertion that fit_alpha[0]==6.4272 on a
+# test_dynamical_model - scvelo's own assertion that fit_alpha[0]==6.4272 on a
 # seeded simulation. We run TWO variants:
 #   * upstream:    plain scvelo, identical to their CI
-#   * scvelo_rs_E: scvelo + monkey-patch suite (E variant — bit-exact path)
+#   * scvelo_rs_E: scvelo + monkey-patch suite (E variant - bit-exact path)
 #
-# The direct-call (G) variant is NOT bit-exact yet — we assert it lands
+# The direct-call (G) variant is NOT bit-exact yet - we assert it lands
 # within 35% relative of the upstream value.
 # ---------------------------------------------------------------------------
 
@@ -76,7 +76,7 @@ def test_dynamical_model_upstream():
 @pytest.mark.xfail(
     reason=(
         "Direct-call lands at ~12.81 vs scvelo's 6.43 on the seeded simulation "
-        "dataset — exactly 2× off, classic NM-trajectory divergence amplified on "
+        "dataset - exactly 2× off, classic NM-trajectory divergence amplified on "
         "tiny synthetic data. Real biological datasets (pancreas etc.) match "
         "scvelo within 1e-9 on 1043/1044 genes; only this seeded simulation "
         "trips a saddle escape."
@@ -84,7 +84,7 @@ def test_dynamical_model_upstream():
     strict=False,
 )
 def test_dynamical_model_direct_call_close():
-    """Direct-call (Rust kernel) — currently not close enough on the seeded
+    """Direct-call (Rust kernel) - currently not close enough on the seeded
     simulation; tracked separately."""
     import scvelo_rs
 
@@ -107,11 +107,11 @@ def test_dynamical_model_direct_call_close():
 
 
 # ---------------------------------------------------------------------------
-# test_pipeline — scvelo's full pipeline. Runs preprocess + recover_dynamics +
+# test_pipeline - scvelo's full pipeline. Runs preprocess + recover_dynamics +
 # tl.velocity (deterministic + dynamical) and asserts numerical fingerprints
 # from scvelo's own CI on `fit_alpha[0], fit_gamma[0]`.
 #
-# We run stock scvelo only — the direct-call path is exercised by the
+# We run stock scvelo only - the direct-call path is exercised by the
 # dual_bit_exact suite on real biological fixtures, where it stays bit-exact.
 # ---------------------------------------------------------------------------
 
@@ -133,7 +133,7 @@ def _run_pipeline_with_em_fit():
 
 
 def test_pipeline_upstream():
-    """scvelo's `test_pipeline` numerical assertions — recover via EM model."""
+    """scvelo's `test_pipeline` numerical assertions - recover via EM model."""
     adata = _run_pipeline_with_em_fit()
     alpha = float(adata.var["fit_alpha"].iloc[0])
     gamma = float(adata.var["fit_gamma"].iloc[0])

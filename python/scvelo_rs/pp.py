@@ -1,4 +1,4 @@
-"""`scvelo_rs.pp` — drop-in for `scvelo.pp`.
+"""`scvelo_rs.pp` - drop-in for `scvelo.pp`.
 
 Pass-through to scvelo. New helpers added by scvelo flow through
 automatically.

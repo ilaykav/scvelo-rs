@@ -2,7 +2,7 @@
 
 **Run on:** developer workstation (CPU model unrecorded), single-threaded `n_jobs=1`
 
-> Measured single-threaded with `n_jobs=1`. GitHub-hosted CI runners (2 cores) show smaller speedups than developer workstations — these numbers illustrate the gap rather than serving as a hardware-neutral benchmark. Re-running `notebooks/02_benchmarks.py` will regenerate this file with the actual runner's CPU/RAM stamped automatically.
+> Measured single-threaded with `n_jobs=1`. GitHub-hosted CI runners (2 cores) show smaller speedups than developer workstations - these numbers illustrate the gap rather than serving as a hardware-neutral benchmark. Re-running `notebooks/02_benchmarks.py` will regenerate this file with the actual runner's CPU/RAM stamped automatically.
 
 10 measurements: 5 speed + 5 memory, 4 marked LONG.
 

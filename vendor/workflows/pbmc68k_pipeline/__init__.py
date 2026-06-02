@@ -1,4 +1,4 @@
-"""CellRank 2 hematopoiesis workflow - see ./README.md."""
+"""PBMC 68k pipeline workflow - see ./README.md."""
 
 from .run import load_data, run
 

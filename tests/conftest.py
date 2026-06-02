@@ -1,4 +1,4 @@
-"""Pytest conftest — build test fixtures on demand from upstream scvelo datasets.
+"""Pytest conftest - build test fixtures on demand from upstream scvelo datasets.
 
 `tests/_data/*.h5ad` is gitignored (regenerable). On first run (typically CI),
 this conftest builds each fixture by loading the corresponding scvelo

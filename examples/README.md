@@ -1,7 +1,7 @@
 # scvelo-rs examples
 
 Self-contained scripts demonstrating the drop-in usage. They double as
-acceptance tests for the install — if any of them errors, something's
+acceptance tests for the install - if any of them errors, something's
 wrong with your environment.
 
 | script | what it does | runtime |

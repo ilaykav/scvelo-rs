@@ -1,9 +1,9 @@
-"""Benchmark suite — 15 tests in 3 categories.
+"""Benchmark suite - 15 tests in 3 categories.
 
 Categories:
-  COMMON       — 5 typical day-to-day scenarios users hit
-  MEMORY-WAS-HEAVY — 5 scenarios that previously OOM'd or used > 10GB; now tolerable
-  TIME-WAS-HEAVY — 5 scenarios that took 3+ minutes; now run in seconds
+  COMMON       - 5 typical day-to-day scenarios users hit
+  MEMORY-WAS-HEAVY - 5 scenarios that previously OOM'd or used > 10GB; now tolerable
+  TIME-WAS-HEAVY - 5 scenarios that took 3+ minutes; now run in seconds
 
 Each test prints scvelo time, scvelo-rs time, speedup, peak memory, and
 a short narrative on what scenario this corresponds to.
@@ -135,7 +135,7 @@ def _run_bench(adata_factory, name: str, category: str, bench_log: list, **kwarg
 
 
 # ============================================================================
-# COMMON — 5 typical day-to-day scenarios
+# COMMON - 5 typical day-to-day scenarios
 # ============================================================================
 
 
@@ -143,7 +143,7 @@ class TestCommon:
     """Typical scvelo workflows users run regularly. Speedup is 50-200×."""
 
     def test_pancreas_tutorial_50_genes(self, bench_log):
-        """The scvelo pancreas tutorial slice — 50 genes, ~40 cells.
+        """The scvelo pancreas tutorial slice - 50 genes, ~40 cells.
         This is the snippet most new users run first."""
         _run_bench(
             lambda: _load("pancreas_50obs_preprocessed.h5ad"),
@@ -153,7 +153,7 @@ class TestCommon:
         )
 
     def test_pancreas_100_obs(self, bench_log):
-        """100-cell subset — typical exploratory workflow."""
+        """100-cell subset - typical exploratory workflow."""
         _run_bench(
             lambda: _load("pancreas_100obs_preprocessed.h5ad"),
             name="pancreas 100 obs (200g)",
@@ -171,7 +171,7 @@ class TestCommon:
         )
 
     def test_pancreas_50_no_connectivity_smoothing(self, bench_log):
-        """fit_connected_states=False — common when users have skipped neighbors."""
+        """fit_connected_states=False - common when users have skipped neighbors."""
         _run_bench(
             lambda: _load("pancreas_50obs_preprocessed.h5ad"),
             name="pancreas 50 obs no-conn-states",
@@ -181,7 +181,7 @@ class TestCommon:
         )
 
     def test_explicit_gene_subset(self, bench_log):
-        """User passes explicit `var_names=[gene1, gene2, ...]` — partial fit."""
+        """User passes explicit `var_names=[gene1, gene2, ...]` - partial fit."""
         a = _load("pancreas_100obs_preprocessed.h5ad")
         gene_list = list(a.var_names[:25])
         _run_bench(
@@ -194,7 +194,7 @@ class TestCommon:
 
 
 # ============================================================================
-# MEMORY — scenarios where peak memory was painful, now is reasonable
+# MEMORY - scenarios where peak memory was painful, now is reasonable
 # ============================================================================
 
 
@@ -216,7 +216,7 @@ class TestMemoryWasHeavy:
         )
 
     def test_atlas_50k_cells_30_genes(self, bench_log):
-        """50k cells × 30 genes — taller atlas. Stock scvelo peaks ~900MB
+        """50k cells × 30 genes - taller atlas. Stock scvelo peaks ~900MB
         because of per-gene Python object copies; we share the CSR by ref."""
         _run_bench(
             lambda: _make_synthetic(50000, 30, seed=1),
@@ -236,7 +236,7 @@ class TestMemoryWasHeavy:
         )
 
     def test_atlas_100k_cells_20_genes(self, bench_log):
-        """100k cells × 20 genes — represents large embryo / brain atlases.
+        """100k cells × 20 genes - represents large embryo / brain atlases.
         Stock scvelo's per-gene fork-and-copy of the connectivity matrix
         was the main OOM vector for users on these scales (issue #756)."""
         _run_bench(
@@ -260,7 +260,7 @@ class TestMemoryWasHeavy:
 
 
 # ============================================================================
-# TIME — scenarios that took 3+ minutes of wall time, now run in seconds
+# TIME - scenarios that took 3+ minutes of wall time, now run in seconds
 # ============================================================================
 
 
@@ -273,7 +273,7 @@ class TestTimeWasHeavy:
     """
 
     def test_pancreas_200_genes(self, bench_log):
-        """Pancreas with all 200 fit_attempted genes — typical full-pipeline run
+        """Pancreas with all 200 fit_attempted genes - typical full-pipeline run
         after preprocessing. Stock scvelo ~90-130s; our path ~4-7s."""
         _run_bench(
             lambda: _load("pancreas_100obs_preprocessed.h5ad"),
@@ -292,7 +292,7 @@ class TestTimeWasHeavy:
         )
 
     def test_synthetic_5k_cells_300_genes(self, bench_log):
-        """5k cells × 300 genes — moderate atlas, many genes. Stock scvelo's
+        """5k cells × 300 genes - moderate atlas, many genes. Stock scvelo's
         per-gene Python loop dominates here; Rayon n_threads scales near-linear."""
         _run_bench(
             lambda: _make_synthetic(5000, 300, seed=10),
@@ -302,7 +302,7 @@ class TestTimeWasHeavy:
         )
 
     def test_synthetic_10k_cells_200_genes(self, bench_log):
-        """10k cells × 200 genes — what a typical published cell-atlas paper
+        """10k cells × 200 genes - what a typical published cell-atlas paper
         would run. Stock scvelo ~5-8 min; our path ~10-30s."""
         _run_bench(
             lambda: _make_synthetic(10000, 200, seed=11),
@@ -312,7 +312,7 @@ class TestTimeWasHeavy:
         )
 
     def test_synthetic_3k_cells_500_genes(self, bench_log):
-        """3k cells × 500 genes — gene-axis stress test. Stock scvelo's
+        """3k cells × 500 genes - gene-axis stress test. Stock scvelo's
         global Python loop is the bottleneck; we parallelise across genes."""
         _run_bench(
             lambda: _make_synthetic(3000, 500, seed=12),

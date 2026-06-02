@@ -1,4 +1,4 @@
-"""Mouse gastrulation atlas workflow — see ./README.md."""
+"""Mouse gastrulation atlas workflow - see ./README.md."""
 
 from .run import load_data, run
 

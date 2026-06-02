@@ -1,4 +1,4 @@
-"""Smoke tests — imports, kernel call, AnnData glue, and signature parity."""
+"""Smoke tests - imports, kernel call, AnnData glue, and signature parity."""
 
 from __future__ import annotations
 

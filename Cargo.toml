@@ -34,7 +34,7 @@ codegen-units = 1
 # suffixes we get names like `tau__unmasked` that clippy flags. Mirroring
 # scvelo identifiers is the explicit goal of this crate.
 non_snake_case = "allow"
-# Public helper surface is wider than internal callers — keep it stable for
+# Public helper surface is wider than internal callers - keep it stable for
 # downstream users / future kernels.
 dead_code = "allow"
 
@@ -42,7 +42,7 @@ dead_code = "allow"
 # PyO3 entry points have many arrays and return tuples by design.
 too_many_arguments = "allow"
 type_complexity = "allow"
-# Mirroring scvelo numpy idioms — parallel-index loops are clearer than
+# Mirroring scvelo numpy idioms - parallel-index loops are clearer than
 # iterators when reading several arrays at the same offset.
 needless_range_loop = "allow"
 # `for _ in 0..n { v.push(0.0) }` is intentional in init paths where the

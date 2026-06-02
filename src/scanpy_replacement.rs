@@ -26,7 +26,7 @@ pub mod pca {
         let mut m = DMatrix::<f64>::from_row_slice(n_cells, n_genes, x);
 
         if zero_center {
-            // Subtract per-column mean — matches scanpy's `zero_center=True` default.
+            // Subtract per-column mean - matches scanpy's `zero_center=True` default.
             let col_means: Vec<f64> = (0..n_genes)
                 .map(|j| m.column(j).iter().sum::<f64>() / n_cells as f64)
                 .collect();
@@ -59,7 +59,7 @@ pub mod pca {
         }
         // Variance per component: s[k]^2 / (n_cells - 1).
         // variance_ratio normalizes against the FULL trace (sum over all
-        // singular values, not just top n_comps) — matches scanpy/sklearn.
+        // singular values, not just top n_comps) - matches scanpy/sklearn.
         let denom = (n_cells.max(2) - 1) as f64;
         let total_var: f64 = s.iter().map(|&v| v * v).sum::<f64>() / denom;
         let var: Vec<f64> = (0..n_comps).map(|k| s[k] * s[k] / denom).collect();
@@ -99,7 +99,7 @@ pub mod knn {
             .map(|i| x[i * n_genes..(i + 1) * n_genes].to_vec())
             .collect();
 
-        // HNSW parameters: max_nb_connection=24, ef_construction=200 — typical
+        // HNSW parameters: max_nb_connection=24, ef_construction=200 - typical
         // for single-cell-scale KNN; ef_search=max(2k, 50) keeps recall high.
         let max_nb_connection = 24;
         let ef_construction = 200;

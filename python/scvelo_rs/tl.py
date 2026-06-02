@@ -1,4 +1,4 @@
-"""`scvelo_rs.tl` — drop-in for `scvelo.tl`.
+"""`scvelo_rs.tl` - drop-in for `scvelo.tl`.
 
 Rust-backed:
   - `recover_dynamics`        dynamical-model EM (full Rust)

@@ -603,9 +603,74 @@ pub fn fit_one_gene(
         tau__unmasked: assign_unmasked.tau__unmasked,
         o: assign_unmasked.o,
     };
-    let _ = vectorize_per_cell;
 
-    let likelihood = (-0.5 * varx).exp();
+    // scvelo's `get_likelihood(weighted='upper')`:
+    //   weights_upper = weights & (u > max(u[weights])/3) & (s > max(s[weights])/3)
+    //   udiff, sdiff = (ut - u_scaled)/std_u_div, (st - s)/std_s  on weights_upper
+    //   distx = udiff² + sdiff² + reg²    (reg=0 post-fit since ssr=gamma/beta)
+    //   varx_lik = mean(distx) - mean(sign(sdiff)*sqrt(distx))² ; clip 0→1
+    //   n = clip(len(distx) - n_total*0.01, 2, inf)
+    //   loglik = -sum(distx) / (2*n*varx_lik) - 0.5*ln(2π*varx_lik)
+    //   likelihood = exp(loglik)
+    let n_total = u.len();
+    let mut u_max_w = f64::NEG_INFINITY;
+    let mut s_max_w = f64::NEG_INFINITY;
+    for i in 0..n_total {
+        if weights[i] {
+            if u[i] > u_max_w { u_max_w = u[i]; }
+            if s[i] > s_max_w { s_max_w = s[i]; }
+        }
+    }
+    let likelihood = if !u_max_w.is_finite() || !s_max_w.is_finite() {
+        f64::NAN
+    } else {
+        let u_thresh = u_max_w / 3.0;
+        let s_thresh = s_max_w / 3.0;
+        let reg_coef = match state.steady_state_ratio {
+            Some(ssr) => state.gamma / state.beta - ssr,
+            None => 0.0,
+        };
+        let has_reg = state.steady_state_ratio.is_some();
+        let mut distx_upper: Vec<f64> = Vec::new();
+        let mut sgn_sqrt_buf: Vec<f64> = Vec::new();
+        for i in 0..n_total {
+            if !(weights[i] && u[i] > u_thresh && s[i] > s_thresh) {
+                continue;
+            }
+            let t_i = assign.t[i];
+            let (tau_i, alpha_i, u0_i, s0_i) =
+                vectorize_per_cell(t_i, state.t_, state.alpha, state.beta, state.gamma, 0.0, 0.0);
+            let (ut_i, st_i) =
+                splicing_solution_scalar(tau_i, alpha_i, state.beta, state.gamma, u0_i, s0_i);
+            let udiff = (ut_i - u_scaled_scratch[i]) / state.std_u * state.scaling;
+            let sdiff = (st_i - s[i]) / state.std_s;
+            let mut distx_i = udiff * udiff + sdiff * sdiff;
+            if has_reg {
+                let reg = reg_coef * s[i] / state.std_s;
+                distx_i += reg * reg;
+            }
+            distx_upper.push(distx_i);
+            // numpy `np.sign` returns 0 for 0.0 - mirror it.
+            let sgn = if sdiff > 0.0 { 1.0 } else if sdiff < 0.0 { -1.0 } else { 0.0 };
+            sgn_sqrt_buf.push(sgn * distx_i.sqrt());
+        }
+        let n_upper = distx_upper.len();
+        if n_upper == 0 {
+            f64::NAN
+        } else {
+            let n_eff = ((n_upper as f64) - (n_total as f64) * 0.01).max(2.0);
+            let sum_distx = pairwise_sum(&distx_upper);
+            let mean_distx = sum_distx / n_upper as f64;
+            let mean_sgn_sqrt = pairwise_sum(&sgn_sqrt_buf) / n_upper as f64;
+            let mut varx_lik = mean_distx - mean_sgn_sqrt * mean_sgn_sqrt;
+            if varx_lik == 0.0 {
+                varx_lik = 1.0;
+            }
+            let loglik = -0.5 * sum_distx / (n_eff * varx_lik)
+                - 0.5 * (2.0 * std::f64::consts::PI * varx_lik).ln();
+            loglik.exp()
+        }
+    };
 
     GeneFitFull {
         alpha: state.alpha,

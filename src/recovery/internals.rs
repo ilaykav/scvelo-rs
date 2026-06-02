@@ -86,7 +86,7 @@ pub(super) fn compute_mse_cached_t(
 }
 
 // u0_/s0_ are the ODE switch-point values at t=t_ from origin (0,0), recomputed
-// from current (alpha, beta, gamma, t_) — NOT the data-derived asymptote stored
+// from current (alpha, beta, gamma, t_) - NOT the data-derived asymptote stored
 // at init time. Using the asymptote here was the source of ~25% direct-call
 // drift before the fix.
 #[inline]

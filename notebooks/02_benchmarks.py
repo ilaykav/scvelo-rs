@@ -1,4 +1,4 @@
-"""Benchmark suite — 16 measurements across speed, memory, and vendor categories.
+"""Benchmark suite - 16 measurements across speed, memory, and vendor categories.
 
 Run as a script:
     python notebooks/02_benchmarks.py [--quick | --long | --vendor-only]
@@ -11,26 +11,26 @@ Run as a script:
 Outputs `notebooks/_artifacts/benchmark_table.md` and `_artifacts/benchmark_results.json`.
 
   Speed (wall time):
-    speed_recover_dynamics_5k        — 5k × 50    quick
-    speed_velocity_20k               — 20k × 100  quick
-    speed_velocity_graph_20k         — 20k × 100  quick
-    speed_full_pipeline_50k          — 50k × 100  LONG
-    speed_recover_dynamics_100k      — 100k × 30  LONG
-    speed_compute_dynamics_5k        — 5k × 50    quick  (per-gene closed-form eval)
+    speed_recover_dynamics_5k        - 5k × 50    quick
+    speed_velocity_20k               - 20k × 100  quick
+    speed_velocity_graph_20k         - 20k × 100  quick
+    speed_full_pipeline_50k          - 50k × 100  LONG
+    speed_recover_dynamics_100k      - 100k × 30  LONG
+    speed_compute_dynamics_5k        - 5k × 50    quick  (per-gene closed-form eval)
 
   Memory (peak heap):
-    mem_recover_dynamics_5k          — 5k × 50    quick
-    mem_velocity_graph_20k           — 20k × 100  quick
-    mem_steady_state_layers          — 5k × 200   quick
-    mem_full_pipeline_50k            — 50k × 100  LONG
-    mem_oom_crash_100k               — 100k × 30  LONG
+    mem_recover_dynamics_5k          - 5k × 50    quick
+    mem_velocity_graph_20k           - 20k × 100  quick
+    mem_steady_state_layers          - 5k × 200   quick
+    mem_full_pipeline_50k            - 50k × 100  LONG
+    mem_oom_crash_100k               - 100k × 30  LONG
 
   Vendor (real-world workflows, all LONG):
-    vendor_pancreas_tutorial               — scvelo pancreas tutorial (3.7k cells)
-    vendor_cellrank2_hematopoiesis         — CellRank fate mapping (24k cells)
-    vendor_mouse_gastrulation_atlas        — atlas scale (116k cells)
-    vendor_pbmc68k_pipeline                — Zheng 2017 PBMC (68k cells, immune)
-    vendor_gastrulation_e75_diffkinetics   — E7.5 (21k cells) + diff-kinetics path
+    vendor_pancreas_tutorial               - scvelo pancreas tutorial (3.7k cells)
+    vendor_cellrank2_hematopoiesis         - CellRank fate mapping (24k cells)
+    vendor_mouse_gastrulation_atlas        - atlas scale (116k cells)
+    vendor_pbmc68k_pipeline                - Zheng 2017 PBMC (68k cells, immune)
+    vendor_gastrulation_e75_diffkinetics   - E7.5 (21k cells) + diff-kinetics path
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ warnings.filterwarnings("ignore")
 
 
 # ---------------------------------------------------------------------------
-# Runner hardware capture — stamped into JSON output and markdown header
+# Runner hardware capture - stamped into JSON output and markdown header
 # so future regenerations are self-labeling and CI artifacts are comparable.
 # ---------------------------------------------------------------------------
 
@@ -169,7 +169,7 @@ def measure(fn: Callable, *args, **kwargs):
 
 
 # ---------------------------------------------------------------------------
-# Operation runners — each takes adata + library and runs one or more steps.
+# Operation runners - each takes adata + library and runs one or more steps.
 # ---------------------------------------------------------------------------
 
 
@@ -227,6 +227,10 @@ class Bench:
     # and reported as `{"status": "skipped", "reason": skip_scvelo_reason}`.
     skip_scvelo: bool = False
     skip_scvelo_reason: str = ""
+    # When True, also compare scvelo vs scvelo_rs adatas after the timed run
+    # and report bit-exactness. Doubles transient memory (both adatas kept
+    # through the compare call), so off by default on `memory` benches.
+    verify_bit_exact: bool = False
 
     def label(self) -> str:
         suffix = " (LONG)" if self.long else ""
@@ -270,6 +274,7 @@ BENCHMARKS: list[Bench] = [
         n_genes=100,
         ops=["recover_dynamics", "velocity", "velocity_graph"],
         description="end-to-end pipeline, 50k cells",
+        verify_bit_exact=True,
     ),
     Bench(
         name="speed_recover_dynamics_100k",
@@ -279,6 +284,7 @@ BENCHMARKS: list[Bench] = [
         n_genes=30,
         ops=["recover_dynamics"],
         description="recover_dynamics at atlas scale, 100k cells",
+        verify_bit_exact=True,
     ),
     Bench(
         name="speed_compute_dynamics_5k",
@@ -338,7 +344,7 @@ BENCHMARKS: list[Bench] = [
         ops=["recover_dynamics", "velocity", "velocity_graph"],
         description="selling-point demo: scvelo's joblib forks OOM, we hold shared memory",
     ),
-    # === VENDOR (5) — real-world workflows; see vendor/workflows/ ===
+    # === VENDOR (5) - real-world workflows; see vendor/workflows/ ===
     Bench(
         name="vendor_pancreas_tutorial",
         category="vendor",
@@ -351,6 +357,7 @@ BENCHMARKS: list[Bench] = [
             "filter_and_normalize -> moments -> recover_dynamics -> velocity -> "
             "velocity_graph -> latent_time"
         ),
+        verify_bit_exact=True,
     ),
     Bench(
         name="vendor_cellrank2_hematopoiesis",
@@ -363,6 +370,7 @@ BENCHMARKS: list[Bench] = [
             "CellRank 2 hematopoiesis (Setty 2019 bone marrow): scvelo dynamical "
             "pipeline + CellRank VelocityKernel + GPCCA fate probabilities"
         ),
+        verify_bit_exact=True,
     ),
     Bench(
         name="vendor_mouse_gastrulation_atlas",
@@ -375,6 +383,7 @@ BENCHMARKS: list[Bench] = [
             "Pijuan-Sala 2019 mouse gastrulation atlas (~116k cells): scvelo "
             "dynamical pipeline at atlas scale; both backends timed"
         ),
+        verify_bit_exact=True,
     ),
     Bench(
         name="vendor_pbmc68k_pipeline",
@@ -388,6 +397,7 @@ BENCHMARKS: list[Bench] = [
             "different tissue from existing benches): pp -> recover_dynamics -> "
             "velocity -> velocity_graph -> latent_time"
         ),
+        verify_bit_exact=True,
     ),
     Bench(
         name="vendor_gastrulation_e75_diffkinetics",
@@ -401,6 +411,7 @@ BENCHMARKS: list[Bench] = [
             "velocity -> velocity_graph -> differential_kinetic_test -> "
             "recover_dynamics (second fit on multi-kinetic genes) -> velocity"
         ),
+        verify_bit_exact=True,
     ),
 ]
 
@@ -435,12 +446,153 @@ def _run_workflow(workflow_name: str, lib, adata):
     mod.run(lib, adata)
 
 
+# ---------------------------------------------------------------------------
+# Bit-exactness check: compare two adatas produced by scvelo vs scvelo_rs
+# on the same input. Reports per-column drift, NaN-pattern agreement, and
+# overall PASS/DRIFT verdict so the benchmark output isn't just "fast".
+# ---------------------------------------------------------------------------
+
+
+def _to_dense_f64(arr):
+    if hasattr(arr, "toarray"):
+        arr = arr.toarray()
+    return np.asarray(arr, dtype=np.float64)
+
+
+def _cmp_array(av, bv, atol, rtol):
+    """Return dict with NaN-aware drift summary. Empty dict if shapes differ."""
+    if av.shape != bv.shape:
+        return {"shape_mismatch": (av.shape, bv.shape)}
+    nan_a, nan_b = np.isnan(av), np.isnan(bv)
+    nan_match = bool(np.array_equal(nan_a, nan_b))
+    nan_count_a = int(nan_a.sum())
+    nan_count_b = int(nan_b.sum())
+    valid = ~(nan_a | nan_b)
+    if not valid.any():
+        return {
+            "nan_match": nan_match,
+            "nan_a": nan_count_a,
+            "nan_b": nan_count_b,
+            "max_abs": 0.0,
+            "max_rel": 0.0,
+            "all_nan": True,
+        }
+    diff = np.abs(av[valid] - bv[valid])
+    denom = np.maximum(np.abs(av[valid]), np.abs(bv[valid]))
+    rel = np.where(denom > 0, diff / denom, 0.0)
+    within = int((diff <= atol + rtol * denom).sum())
+    return {
+        "nan_match": nan_match,
+        "nan_a": nan_count_a,
+        "nan_b": nan_count_b,
+        "max_abs": float(diff.max()),
+        "max_rel": float(rel.max()),
+        "n_compared": int(valid.sum()),
+        "within_tol": within,
+    }
+
+
+def _compare_adatas(a, b, atol: float = 1e-9, rtol: float = 1e-9) -> dict:
+    """Compare key outputs between two adatas. Returns a summary dict with
+    per-output drift and an overall PASS/DRIFT verdict.
+
+    Tolerances:
+      * `atol=1e-9, rtol=1e-9` for var fit params (f64 ULP level).
+      * `atol=1e-7, rtol=1e-7` for per-cell layers (more accumulated rounding).
+      * varm pvals get f32 ULP (~1.19e-7) since scvelo stores them as f32.
+    """
+    summary: dict = {"checks": {}, "passes": 0, "total": 0}
+    if a.n_obs != b.n_obs or a.n_vars != b.n_vars:
+        summary["shape_mismatch"] = True
+        summary["verdict"] = "shape_mismatch"
+        return summary
+
+    # var fit params (only those present on both sides).
+    f64_eps = float(np.finfo(np.float64).eps)
+    var_targets = [
+        "fit_alpha", "fit_beta", "fit_gamma", "fit_scaling", "fit_t_",
+        "fit_likelihood", "fit_std_u", "fit_std_s",
+        "fit_pval_kinetics",
+    ]
+    for col in var_targets:
+        if col in a.var.columns and col in b.var.columns:
+            res = _cmp_array(
+                np.asarray(a.var[col].values, dtype=np.float64),
+                np.asarray(b.var[col].values, dtype=np.float64),
+                atol=atol, rtol=rtol,
+            )
+            res["ok"] = (res.get("nan_match", False)
+                        and res.get("max_abs", 1.0) <= atol + rtol * 1.0)
+            summary["checks"][f"var.{col}"] = res
+            summary["total"] += 1
+            summary["passes"] += int(res.get("ok", False))
+
+    # fit_diff_kinetics: string equality (NaN/None object dtype).
+    if "fit_diff_kinetics" in a.var.columns and "fit_diff_kinetics" in b.var.columns:
+        sa = a.var["fit_diff_kinetics"].astype(str).to_numpy()
+        sb = b.var["fit_diff_kinetics"].astype(str).to_numpy()
+        match = int((sa == sb).sum())
+        total = int(len(sa))
+        res = {"match": match, "total": total, "ok": match == total}
+        summary["checks"]["var.fit_diff_kinetics"] = res
+        summary["total"] += 1
+        summary["passes"] += int(res["ok"])
+
+    # varm fit_pvals_kinetics (per-cluster recarray, stored as f32).
+    if "fit_pvals_kinetics" in a.varm and "fit_pvals_kinetics" in b.varm:
+        def _to2d(rec):
+            arr = np.asarray(rec)
+            if arr.dtype.names is not None:
+                stacked = np.stack([arr[n] for n in arr.dtype.names], axis=-1).astype(np.float64)
+            else:
+                stacked = arr.astype(np.float64, copy=False)
+            return stacked.reshape(stacked.shape[0], -1)
+        ma, mb = _to2d(a.varm["fit_pvals_kinetics"]), _to2d(b.varm["fit_pvals_kinetics"])
+        f32_eps = float(np.finfo(np.float32).eps)
+        res = _cmp_array(ma, mb, atol=f32_eps, rtol=f32_eps)
+        res["ok"] = (res.get("nan_match", False)
+                     and res.get("max_abs", 1.0) <= f32_eps)
+        summary["checks"]["varm.fit_pvals_kinetics"] = res
+        summary["total"] += 1
+        summary["passes"] += int(res["ok"])
+
+    # Per-cell layers (NaN-aware, looser tol).
+    layer_atol, layer_rtol = 1e-7, 1e-7
+    for layer in ("fit_t", "fit_tau", "fit_tau_", "velocity", "velocity_u",
+                  "Ms", "Mu"):
+        if layer in a.layers and layer in b.layers:
+            res = _cmp_array(
+                _to_dense_f64(a.layers[layer]),
+                _to_dense_f64(b.layers[layer]),
+                atol=layer_atol, rtol=layer_rtol,
+            )
+            res["ok"] = (res.get("nan_match", False)
+                         and res.get("max_abs", 1.0) <= layer_atol + layer_rtol * 1.0)
+            summary["checks"][f"layers.{layer}"] = res
+            summary["total"] += 1
+            summary["passes"] += int(res.get("ok", False))
+
+    summary["verdict"] = "PASS" if summary["passes"] == summary["total"] else "DRIFT"
+    summary["pass_ratio"] = (summary["passes"] / summary["total"]
+                             if summary["total"] > 0 else 0.0)
+    return summary
+
+
+def _format_bit_exact_short(verify: dict) -> str:
+    """One-line summary for stdout/markdown."""
+    if not verify:
+        return ""
+    if verify.get("shape_mismatch"):
+        return "shape_mismatch"
+    return f"{verify['verdict']} ({verify['passes']}/{verify['total']})"
+
+
 def run_one(bench: Bench) -> dict:
     import scvelo as scv
     import scvelo_rs
 
     label_ops = bench.ops if bench.workflow is None else f"workflow={bench.workflow}"
-    print(f"\n=== {bench.label()} — {bench.n_cells:,} × {bench.n_genes}, {label_ops} ===")
+    print(f"\n=== {bench.label()} - {bench.n_cells:,} × {bench.n_genes}, {label_ops} ===")
     print(f"    {bench.description}")
 
     if bench.workflow is not None:
@@ -463,10 +615,11 @@ def run_one(bench: Bench) -> dict:
         "workflow": bench.workflow,
     }
 
+    adatas: dict = {}  # kept only when verify_bit_exact, dropped after compare
     for backend, lib in (("scvelo", scv), ("scvelo_rs", scvelo_rs)):
         if backend == "scvelo" and bench.skip_scvelo:
             out[backend] = {"status": "skipped", "reason": bench.skip_scvelo_reason}
-            print(f"  {backend:<11s}  SKIPPED — {bench.skip_scvelo_reason}")
+            print(f"  {backend:<11s}  SKIPPED - {bench.skip_scvelo_reason}")
             continue
 
         a = base.copy()
@@ -490,8 +643,11 @@ def run_one(bench: Bench) -> dict:
             "peak_mb": round(peak_mb, 1),
         }
         print(f"  {backend:<11s}  wall={wall:>8.2f}s  peak={peak_mb:>7.1f}MB")
-        del a
-        gc.collect()
+        if bench.verify_bit_exact:
+            adatas[backend] = a
+        else:
+            del a
+            gc.collect()
 
     if isinstance(out.get("scvelo"), dict) and isinstance(out.get("scvelo_rs"), dict):
         s, r = out["scvelo"], out["scvelo_rs"]
@@ -503,6 +659,21 @@ def run_one(bench: Bench) -> dict:
             print(f"  -> scvelo OOM, scvelo-rs survived ({r['wall_s']}s, {r['peak_mb']}MB)")
         elif s.get("status") == "skipped" and r.get("status") == "ok":
             print(f"  -> scvelo skipped, scvelo-rs survived ({r['wall_s']}s, {r['peak_mb']}MB)")
+
+    # Bit-exactness comparison (opt-in via verify_bit_exact).
+    if (bench.verify_bit_exact and "scvelo" in adatas and "scvelo_rs" in adatas):
+        verify = _compare_adatas(adatas["scvelo"], adatas["scvelo_rs"])
+        out["verify"] = verify
+        print(f"  -> bit-exact: {_format_bit_exact_short(verify)}")
+        for name, res in verify.get("checks", {}).items():
+            if not res.get("ok", False):
+                if "max_abs" in res:
+                    print(f"       DRIFT  {name}  max_abs={res['max_abs']:.3e}  "
+                          f"nan_match={res.get('nan_match')}")
+                elif "match" in res:
+                    print(f"       DRIFT  {name}  match={res['match']}/{res['total']}")
+        adatas.clear()
+        gc.collect()
 
     return out
 
@@ -519,7 +690,7 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
         f.write(f"**Run on:** {_hardware_line(hardware)}\n\n")
         f.write(
             "> Measured single-threaded with `n_jobs=1`. GitHub-hosted CI runners "
-            "(2 cores) show smaller speedups than developer workstations — these "
+            "(2 cores) show smaller speedups than developer workstations - these "
             "numbers illustrate the gap rather than serving as a hardware-neutral "
             "benchmark.\n\n"
         )
@@ -527,58 +698,70 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
 
         def fmt(d, key, unit):
             if not isinstance(d, dict):
-                return "—"
+                return "-"
             if d.get("status") == "OOM":
                 return "**OOM**"
             if d.get("status") == "skipped":
                 return "**SKIPPED**"
-            return f"{d.get(key, '—')} {unit}"
+            return f"{d.get(key, '-')} {unit}"
 
         sections = (
             ("speed", "Speed (wall time)"),
             ("memory", "Memory (peak heap)"),
             ("vendor", "Vendor workflows (real-world end-to-end)"),
         )
+        def _verify_cell(r):
+            v = r.get("verify")
+            if not v:
+                return "-"
+            if v.get("shape_mismatch"):
+                return "**shape_mismatch**"
+            verdict = v.get("verdict", "-")
+            passes, total = v.get("passes", 0), v.get("total", 0)
+            mark = "✓" if verdict == "PASS" else "✗"
+            return f"{mark} {verdict} ({passes}/{total})"
+
         for category, header in sections:
             f.write(f"## {header}\n\n")
             if category == "vendor":
-                f.write("| workflow | cells | genes | scvelo | scvelo-rs | speedup |\n")
-                f.write("|---|---:|---:|---|---|---:|\n")
+                f.write("| workflow | cells | genes | scvelo | scvelo-rs | speedup | bit-exact |\n")
+                f.write("|---|---:|---:|---|---|---:|---|\n")
             else:
-                f.write("| benchmark | cells | genes | ops | scvelo | scvelo-rs | ratio |\n")
-                f.write("|---|---:|---:|---|---|---|---:|\n")
+                f.write("| benchmark | cells | genes | ops | scvelo | scvelo-rs | ratio | bit-exact |\n")
+                f.write("|---|---:|---:|---|---|---|---:|---|\n")
 
             for r in results:
                 if r["category"] != category:
                     continue
                 s = r.get("scvelo", {})
                 rs = r.get("scvelo_rs", {})
+                verify_cell = _verify_cell(r)
 
                 if category == "speed":
                     scv_cell = fmt(s, "wall_s", "s")
                     rs_cell = fmt(rs, "wall_s", "s")
-                    ratio = r.get("speedup_x", "—")
-                    ratio_str = f"{ratio}×" if isinstance(ratio, (int, float)) else "—"
+                    ratio = r.get("speedup_x", "-")
+                    ratio_str = f"{ratio}×" if isinstance(ratio, (int, float)) else "-"
                     long_marker = " (LONG)" if r["long"] else ""
                     f.write(
                         f"| {r['name']}{long_marker} | {r['n_cells']:,} | {r['n_genes']} | "
-                        f"{','.join(r['ops'])} | {scv_cell} | {rs_cell} | {ratio_str} |\n"
+                        f"{','.join(r['ops'])} | {scv_cell} | {rs_cell} | {ratio_str} | {verify_cell} |\n"
                     )
                 elif category == "memory":
                     scv_cell = fmt(s, "peak_mb", "MB")
                     rs_cell = fmt(rs, "peak_mb", "MB")
-                    saved = r.get("mem_saved_mb", "—")
-                    ratio_str = f"{saved:+} MB" if isinstance(saved, (int, float)) else "—"
+                    saved = r.get("mem_saved_mb", "-")
+                    ratio_str = f"{saved:+} MB" if isinstance(saved, (int, float)) else "-"
                     long_marker = " (LONG)" if r["long"] else ""
                     f.write(
                         f"| {r['name']}{long_marker} | {r['n_cells']:,} | {r['n_genes']} | "
-                        f"{','.join(r['ops'])} | {scv_cell} | {rs_cell} | {ratio_str} |\n"
+                        f"{','.join(r['ops'])} | {scv_cell} | {rs_cell} | {ratio_str} | {verify_cell} |\n"
                     )
                 else:
-                    # vendor — column layout differs (no ops, speedup column instead)
+                    # vendor - column layout differs (no ops, speedup column instead)
                     scv_cell = fmt(s, "wall_s", "s")
                     rs_cell = fmt(rs, "wall_s", "s")
-                    ratio = r.get("speedup_x", "—")
+                    ratio = r.get("speedup_x", "-")
                     if isinstance(ratio, (int, float)):
                         ratio_str = f"{ratio}×"
                     elif s.get("status") == "skipped" and rs.get("status") == "ok":
@@ -586,10 +769,10 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
                     elif s.get("status") == "OOM" and rs.get("status") == "ok":
                         ratio_str = "**∞ (scvelo OOM)**"
                     else:
-                        ratio_str = "—"
+                        ratio_str = "-"
                     f.write(
                         f"| {r['name']} (LONG) | {r['n_cells']:,} | {r['n_genes']} | "
-                        f"{scv_cell} | {rs_cell} | {ratio_str} |\n"
+                        f"{scv_cell} | {rs_cell} | {ratio_str} | {verify_cell} |\n"
                     )
             f.write("\n")
 
@@ -636,7 +819,7 @@ def main():
         try:
             results.append(run_one(bench))
         except MemoryError:
-            print(f"  {bench.name}: even fixture build OOM'd — skipping")
+            print(f"  {bench.name}: even fixture build OOM'd - skipping")
             results.append(
                 {
                     "name": bench.name,
