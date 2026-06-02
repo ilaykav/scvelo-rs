@@ -121,9 +121,9 @@ mod tests {
             n_cells, n_genes, 20.0,
         );
 
-        // Gene 0 was rescaled — alpha changed.
+        // Gene 0 was rescaled - alpha changed.
         assert_ne!(alpha[0], 1.0);
-        // Gene 1 was skipped — alpha unchanged.
+        // Gene 1 was skipped - alpha unchanged.
         assert_eq!(alpha[1], 1.0);
         assert_eq!(beta[1], 2.0);
     }

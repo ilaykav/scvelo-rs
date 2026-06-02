@@ -36,7 +36,7 @@ def test_velocity_deterministic_matches_scvelo(fixture):
     scv.tl.velocity(a_scv, mode="deterministic")
     scvelo_rs.velocity(a_rs, mode="deterministic")
 
-    # gamma + r2 — primary signal, expect bit-exact at f64 (small ULP noise OK).
+    # gamma + r2 - primary signal, expect bit-exact at f64 (small ULP noise OK).
     np.testing.assert_allclose(
         a_scv.var["velocity_gamma"].to_numpy().astype(np.float64),
         a_rs.var["velocity_gamma"].to_numpy().astype(np.float64),

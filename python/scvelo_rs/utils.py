@@ -1,4 +1,4 @@
-"""`scvelo_rs.utils` — drop-in for `scvelo.utils`.
+"""`scvelo_rs.utils` - drop-in for `scvelo.utils`.
 
 Pass-through to scvelo. New helpers added by scvelo flow through
 automatically.

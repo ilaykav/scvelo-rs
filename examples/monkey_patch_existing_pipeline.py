@@ -3,7 +3,7 @@
 Useful when you have an existing notebook / script using `import scvelo as scv`
 and don't want to touch the rest of the code. Importing `scvelo_rs.patch`
 swaps `scv.tl.{recover_dynamics,velocity,velocity_graph}` to point at the Rust
-kernels — every downstream call benefits transparently.
+kernels - every downstream call benefits transparently.
 
 Originals are preserved at `scv.tl.<name>_original` for A/B comparison.
 """
@@ -27,7 +27,7 @@ def main() -> None:
         scv.tl.recover_dynamics_original.__module__,
     )
 
-    # Standard scvelo workflow — unchanged.
+    # Standard scvelo workflow - unchanged.
     adata = scv.datasets.pancreas()
     scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
     scv.pp.moments(adata)

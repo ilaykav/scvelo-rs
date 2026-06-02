@@ -8,7 +8,7 @@ labels: enhancement
 
 <!-- Describe the workflow that's blocked, not just the API you'd like.
 e.g. "I want to run recover_dynamics on a 10M-cell atlas but I run out
-of memory" — not "please add a streaming API". The first framing makes
+of memory" - not "please add a streaming API". The first framing makes
 it easier to find a different solution. -->
 
 ## Where the gap is

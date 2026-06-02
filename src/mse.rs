@@ -27,7 +27,7 @@ pub fn get_distx_full(
     debug_assert_eq!(s_full.len(), n);
     debug_assert_eq!(weights.len(), n);
 
-    // (1) Full assign_timepoints — yields t, tau, o for ALL n cells.
+    // (1) Full assign_timepoints - yields t, tau, o for ALL n cells.
     //     Mirrors get_time_assignment(refit_time=True) before the weights mask.
     let assign = assign_timepoints(
         u_scaled,

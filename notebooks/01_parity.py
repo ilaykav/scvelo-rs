@@ -1,4 +1,4 @@
-"""Parity notebook — scvelo vs scvelo-rs on the standard public datasets.
+"""Parity notebook - scvelo vs scvelo-rs on the standard public datasets.
 
 Run as a script:
     python notebooks/01_parity.py
@@ -14,7 +14,7 @@ Asserts:
   - velocity_graph (cosine cell-cell matrix)    per-cell vector r > 0.99
 
 If any assertion fails, the notebook prints a per-fixture diagnostic table
-showing where the divergence is and falls through (does not raise) — useful
+showing where the divergence is and falls through (does not raise) - useful
 when running interactively for inspection.
 """
 
@@ -127,7 +127,7 @@ def report(fixture: str):
 
 
 # ---------------------------------------------------------------------------
-# 4. Plotting (optional — only when matplotlib is available and a backend
+# 4. Plotting (optional - only when matplotlib is available and a backend
 # can render). Generates a side-by-side velocity arrow plot.
 # ---------------------------------------------------------------------------
 

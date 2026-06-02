@@ -1,4 +1,4 @@
-"""`scvelo_rs.datasets` — pass-through to `scvelo.datasets`."""
+"""`scvelo_rs.datasets` - pass-through to `scvelo.datasets`."""
 
 from __future__ import annotations
 

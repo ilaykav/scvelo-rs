@@ -338,7 +338,7 @@ pub fn assign_tau_full(
     let mut xt_u_ = vec![0.0f64; num_];
     let mut xt_s_ = vec![0.0f64; num_];
     let mut tpoints_ = vec![0.0f64; num_];
-    // linspace(0, t0, num=num)[1:] — first grid point dropped.
+    // linspace(0, t0, num=num)[1:] - first grid point dropped.
     let dt = if num > 1 { t0 / (num - 1) as f64 } else { 0.0 };
     for k in 0..num_ {
         let t = ((k + 1) as f64) * dt;
@@ -346,7 +346,7 @@ pub fn assign_tau_full(
         xt_u_[k] = unspliced(t, u0_, 0.0, beta);
         xt_s_[k] = spliced(t, s0_, u0_, 0.0, beta, gamma);
     }
-    // numpy's linspace endpoint fix — same bit-exact reasoning as `sample_curve`.
+    // numpy's linspace endpoint fix - same bit-exact reasoning as `sample_curve`.
     // tpoints_'s LAST sample (k = num_ - 1, originally index num-1 of full linspace)
     // should equal t0 exactly. Without this, projections to the endpoint get a
     // 1-ULP-off tau and propagate the same NM-trajectory drift.

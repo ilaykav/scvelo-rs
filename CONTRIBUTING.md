@@ -2,7 +2,7 @@
 
 Thanks for your interest. The project's near-term goals are bug-fix /
 test-coverage / docs improvements. A full architecture write-up ships
-with the v0.2 documentation — for now, the
+with the v0.2 documentation - for now, the
 [`README`](README.md) and the source layout under `src/` and
 `python/scvelo_rs/` are the reference.
 
@@ -13,6 +13,7 @@ git clone https://github.com/ilaykav/scvelo-rs
 cd scvelo-rs
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
+pre-commit install            # auto-formats on commit so CI lint never goes red
 maturin develop --release
 pytest tests/unit tests/integration
 ```
@@ -21,20 +22,24 @@ Requires Rust 1.75+ and Python 3.10+.
 
 ## Tests
 
-- `pytest tests/unit` — fast Rust kernel smoke + ODE / splicing equivalence.
-- `pytest tests/integration` — side-by-side scVelo vs scvelo-rs (the
+- `pytest tests/unit` - fast Rust kernel smoke + ODE / splicing equivalence.
+- `pytest tests/integration` - side-by-side scVelo vs scvelo-rs (the
   gating tests: `test_bit_exact.py`, `test_equivalence.py`,
   `test_scvelo_pipeline.py`, `test_velocity*.py`, `test_pp.py`,
   `test_compat.py`, `test_edge_cases.py`).
-- `pytest -m benchmark` — opt-in speedup benchmarks under
+- `pytest -m benchmark` - opt-in speedup benchmarks under
   `tests/benchmarks/` (skipped by default; takes 60+ minutes).
-- `python notebooks/01_parity.py` — full-fixture numerical-equivalence
+- `python notebooks/01_parity.py` - full-fixture numerical-equivalence
   dashboard against pancreas + dentategyrus.
-- `python notebooks/02_benchmarks.py` — wall-time + memory suite.
+- `python notebooks/02_benchmarks.py` - wall-time + memory suite.
 
 ## Style
 
-- Rust: `cargo fmt`, `cargo clippy`. Comments are sparse — only WHY when
+- Formatting is automatic: `pre-commit install` once, then `ruff --fix`,
+  `ruff format`, and `cargo fmt` run on every commit. The CI `Python lint`
+  and `Rust lint` jobs check the same thing, so a clean commit stays green.
+  If you skip the hook, run `pre-commit run --all-files` before pushing.
+- Rust: `cargo fmt`, `cargo clippy`. Comments are sparse - only WHY when
   it's not obvious from the code.
 - Python: stay close to scvelo's API surface. The wrapper layer is glue;
   never put compute logic there.

@@ -1,8 +1,8 @@
-"""Edge-case robustness battery — degenerate inputs that real-world data hits.
+"""Edge-case robustness battery - degenerate inputs that real-world data hits.
 
 Modeled after rustscenic's edge-case suite. Each test feeds an unusual but
 plausible AnnData into `scvelo_rs.recover_dynamics` (and friends) and asserts
-the library produces a sane result or a clear error — never a segfault, hang,
+the library produces a sane result or a clear error - never a segfault, hang,
 or silent garbage.
 """
 
@@ -71,7 +71,7 @@ def test_constant_gene_handled_gracefully():
 
 def test_nan_in_layers_raises_clear_error():
     """NaN values in Mu/Ms must raise a clear ValueError before reaching the
-    Rust kernel — `partial_cmp` doesn't form a total order with NaN, which
+    Rust kernel - `partial_cmp` doesn't form a total order with NaN, which
     used to panic the sort kernel."""
     import scvelo_rs
 
@@ -121,7 +121,7 @@ def test_single_gene_adata():
 
 
 def test_few_cells_adata():
-    """Very small adata (10 cells) — must run without crashing on init heuristics."""
+    """Very small adata (10 cells) - must run without crashing on init heuristics."""
     import scvelo_rs
 
     adata = _load_pancreas_50()

@@ -52,6 +52,9 @@ Changelog  = "https://github.com/ilaykav/scvelo-rs/blob/main/CHANGELOG.md"
 dev = [
     "pytest>=8",
     "pytest-benchmark>=4",
+    "pre-commit>=3",
+    # Pinned to match .pre-commit-config.yaml so local, hook, and CI ruff agree.
+    "ruff==0.15.12",
 ]
 docs = [
     "sphinx>=7",
@@ -70,7 +73,7 @@ testpaths = ["tests"]
 markers = [
     "benchmark: long-running speedup benchmarks (opt in: pytest -m benchmark)",
 ]
-# Skip benchmarks by default — they take 60+ minutes.
+# Skip benchmarks by default - they take 60+ minutes.
 addopts = "-m 'not benchmark'"
 
 [tool.ruff]
@@ -91,7 +94,7 @@ select = [
     "UP",  # pyupgrade
 ]
 ignore = [
-    "E501",  # line too long — handled by formatter
+    "E501",  # line too long - handled by formatter
     "E741",  # ambiguous variable names (we use `o`, `t_` to mirror scvelo)
     "B008",  # function calls in defaults (allowed for AnnData ops)
 ]

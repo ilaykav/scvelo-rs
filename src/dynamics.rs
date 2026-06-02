@@ -36,7 +36,7 @@ pub fn unspliced(tau: f64, u0: f64, alpha: f64, beta: f64) -> f64 {
 /// Closed-form spliced solution `s(tau, s0, u0, alpha, beta, gamma)`.
 #[inline]
 pub fn spliced(tau: f64, s0: f64, u0: f64, alpha: f64, beta: f64, gamma: f64) -> f64 {
-    // c uses reciprocal-then-multiply (two roundings) — required for ULP-level
+    // c uses reciprocal-then-multiply (two roundings) - required for ULP-level
     // match with the reference Python `(alpha - u0*beta) * invert(gamma - beta)`.
     let c = (alpha - u0 * beta) * invert_scalar(gamma - beta);
     let expu = (-beta * tau).exp();
@@ -198,7 +198,7 @@ pub fn splicing_solution_scalar_f32_emu(
     (u as f64, s as f64)
 }
 
-/// f32-emulating splicing_solution_array — vectorised over tau with scalar params.
+/// f32-emulating splicing_solution_array - vectorised over tau with scalar params.
 #[allow(clippy::too_many_arguments)]
 pub fn splicing_solution_array_f32_emu(
     tau: &[f64],

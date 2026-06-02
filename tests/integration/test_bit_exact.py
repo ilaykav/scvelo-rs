@@ -13,7 +13,7 @@ ops, while scvelo-rs runs pure f64). Both adatas have layers cast to f64
 inside each test for true apples-to-apples comparison.
 
 A small fraction of genes (typically <5%) shows machine-precision NM
-trajectory ULP-flips even at strict f64 — these are documented residual
+trajectory ULP-flips even at strict f64 - these are documented residual
 drift inherent to f64 accumulation across 6-stage NM. Strict assertion
 allows up to `MAX_OUTLIER_FRAC` of genes with `max_rel > 1e-9`.
 
@@ -49,7 +49,7 @@ def _load(name: str):
 
 
 def _cast_f64(adata):
-    """Cast Mu, Ms layers to float64 in-place — required for bit-exact match
+    """Cast Mu, Ms layers to float64 in-place - required for bit-exact match
     against scvelo (which otherwise propagates f32 precision through internal ops)."""
     if "Mu" in adata.layers:
         adata.layers["Mu"] = np.asarray(adata.layers["Mu"], dtype=np.float64)
@@ -247,7 +247,7 @@ def _run_dual(adata_factory, scenario: str, shared_results: list, **kwargs):
 
 
 # ----------------------------------------------------------------------------
-# Bit-exact dual tests — for each scvelo fixture our path supports
+# Bit-exact dual tests - for each scvelo fixture our path supports
 # ----------------------------------------------------------------------------
 
 
@@ -290,7 +290,7 @@ def test_recover_dynamics_no_connected_states(shared_results):
 
 
 @pytest.mark.skip(
-    reason="velocity_genes computation requires scvelo.tl.velocity which mutates state across runs — separate test fixture needed"
+    reason="velocity_genes computation requires scvelo.tl.velocity which mutates state across runs - separate test fixture needed"
 )
 def test_recover_dynamics_velocity_genes(shared_results):
     pass

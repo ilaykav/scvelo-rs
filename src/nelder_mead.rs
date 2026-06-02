@@ -69,7 +69,7 @@ where
         nfev += 1;
     }
 
-    // Sort simplex by f. Stable tie-break (preserves input order on ties) —
+    // Sort simplex by f. Stable tie-break (preserves input order on ties) -
     // matches scipy NM for most patterns. The 4 outlier genes (Dapk1, Erc2,
     // Prox1, Arid4b) hit a numpy SIMD-quicksort tie pattern where reverse-index
     // would match scvelo, but reverse-index breaks 17 other genes that the
@@ -111,7 +111,7 @@ where
 
     while nit < cfg.maxiter && nfev < cfg.maxfev {
         // Convergence check (scipy: AFTER the iteration body in scipy, but here we check first
-        // to match scipy's `while iterations < maxiter` loop layout — scipy checks
+        // to match scipy's `while iterations < maxiter` loop layout - scipy checks
         // tolerance at top of each iteration).
         if simplex_converged(&sim, &fsim, cfg.xatol, cfg.fatol) {
             converged = true;
@@ -251,7 +251,7 @@ fn simplex_converged(sim: &[Vec<f64>], fsim: &[f64], xatol: f64, fatol: f64) -> 
     if max_df > fatol {
         return false;
     }
-    // np.max(np.max(|sim[1:] - sim[0]|, axis=-1)) <= xatol  — i.e. max over all vertex coords
+    // np.max(np.max(|sim[1:] - sim[0]|, axis=-1)) <= xatol  - i.e. max over all vertex coords
     let n = sim[0].len();
     let mut max_dx = 0.0f64;
     for k in 1..n_plus_1 {

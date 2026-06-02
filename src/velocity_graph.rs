@@ -61,7 +61,7 @@ fn compute_cosines_one(
         };
     }
 
-    // ||V_i|| — l2 norm
+    // ||V_i|| - l2 norm
     let mut v_norm_sq: f32 = 0.0;
     for &x in v_i.iter() {
         v_norm_sq += x * x;
@@ -90,7 +90,7 @@ fn compute_cosines_one(
             dx[j] = x_k[j] - x_i[j];
         }
 
-        // dx -= dx.mean()  — row centering before cosine
+        // dx -= dx.mean()  - row centering before cosine
         let mut sum: f32 = 0.0;
         for &x in dx.iter() {
             sum += x;

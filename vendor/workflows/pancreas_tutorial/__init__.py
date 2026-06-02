@@ -1,4 +1,4 @@
-"""Pancreas tutorial workflow — see ./README.md."""
+"""Pancreas tutorial workflow - see ./README.md."""
 
 from .run import load_data, run
 

@@ -1,11 +1,11 @@
 name: Benchmarks
 
-# Weekly scheduled run uses the full (long) tier — see issue #7.
+# Weekly scheduled run uses the full (long) tier - see issue #7.
 # Manual dispatch lets you pick `quick` (default) or `long` from the Actions tab.
 
 on:
   schedule:
-    # Monday 06:00 UTC — runs the full 10-benchmark suite.
+    # Monday 06:00 UTC - runs the full 10-benchmark suite.
     - cron: "0 6 * * 1"
   workflow_dispatch:
     inputs:

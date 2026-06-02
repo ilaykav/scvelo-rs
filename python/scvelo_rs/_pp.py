@@ -1,4 +1,4 @@
-"""scvelo_rs.pp — preprocessing primitives.
+"""scvelo_rs.pp - preprocessing primitives.
 
 scvelo-rs mirrors `scvelo.pp`'s current surface. The Rust SVD and HNSW
 primitives are callable directly via `scvelo_rs._scvelo_rs.pca_kernel` and

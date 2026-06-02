@@ -1,4 +1,4 @@
-"""`scvelo_rs.pl` — pass-through to `scvelo.pl` (matplotlib plotting).
+"""`scvelo_rs.pl` - pass-through to `scvelo.pl` (matplotlib plotting).
 
 Plotting will stay in Python / matplotlib indefinitely; nothing to gain
 from a Rust port here.

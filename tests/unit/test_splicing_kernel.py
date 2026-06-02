@@ -1,4 +1,4 @@
-"""Port of c:/projects/scvelo/tests/core/test_models.py — same scipy.odeint
+"""Port of c:/projects/scvelo/tests/core/test_models.py - same scipy.odeint
 ground-truth comparison for the splicing dynamics ODE solution, but applied to
 our Rust splicing kernel (`splicing_dynamics_eval_kernel`) AS WELL AS scvelo's
 `SplicingDynamics`. If both kernels solve the same ODE, both should match
@@ -35,7 +35,7 @@ def _ode_rhs(y, t, alpha, beta, gamma):
     ],
 )
 def test_output_shapes_upstream(alpha, beta, gamma, initial_state):
-    """Mirror scvelo's `test_output_form` — SplicingDynamics returns (n, 2) ndarray."""
+    """Mirror scvelo's `test_output_form` - SplicingDynamics returns (n, 2) ndarray."""
     sd = SplicingDynamics(alpha=alpha, beta=beta, gamma=gamma, initial_state=initial_state)
     t = np.linspace(0, 10, 50)
     u, s = sd.get_solution(t, stacked=False)
@@ -60,7 +60,7 @@ def test_output_shapes_rust(alpha, beta, gamma, initial_state):
 
 
 # ---------------------------------------------------------------------------
-# Solution correctness vs scipy.odeint — scvelo's flagship test.
+# Solution correctness vs scipy.odeint - scvelo's flagship test.
 # ---------------------------------------------------------------------------
 
 
