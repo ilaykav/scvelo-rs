@@ -1,12 +1,16 @@
 name: Benchmarks
 
-# Weekly scheduled run uses the full (long) tier - see issue #7.
-# Manual dispatch lets you pick `quick` (default) or `long` from the Actions tab.
+# The scheduled run (every other day) uses the `long` tier, which is sized to
+# finish inside a GitHub-hosted runner's 6 h job cap. The atlas-scale /
+# multi-hour benches live in the `extra-long` tier (manual dispatch only; needs
+# a self-hosted or long-lived runner). See issue #7.
 
 on:
   schedule:
-    # Monday 06:00 UTC - runs the full 10-benchmark suite.
-    - cron: "0 6 * * 1"
+    # 06:00 UTC on odd days of the month (~every other day) - runs the `long`
+    # tier (13 benches, under the 6 h cap). Note: */2 steps day-of-month, so
+    # the gap is 1 day across month boundaries (e.g. 31st -> 1st).
+    - cron: "0 6 */2 * *"
   workflow_dispatch:
     inputs:
       tier:
@@ -16,13 +20,19 @@ on:
         options:
           - quick
           - long
+          - extra-long
           - vendor-only
 
 jobs:
   benchmark:
     name: Run benchmarks (${{ github.event_name == 'schedule' && 'long' || inputs.tier }})
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    permissions:
+      contents: write  # the scheduled run commits the refreshed benchmark table into README
+    # GitHub-hosted jobs are hard-killed at 6 h; 350 min leaves margin while
+    # giving the `long` tier maximum headroom. `extra-long` will exceed this on
+    # a hosted runner by design - dispatch it on a self-hosted/long-lived runner.
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
 
@@ -63,9 +73,30 @@ jobs:
           echo "Tier: $TIER"
           case "$TIER" in
             quick)        python notebooks/02_benchmarks.py --quick ;;
+            extra-long)   python notebooks/02_benchmarks.py --extra-long ;;
             vendor-only)  python notebooks/02_benchmarks.py --vendor-only ;;
             *)            python notebooks/02_benchmarks.py --long ;;
           esac
+
+      # Only the scheduled (every-other-day) `--long` run publishes to the README.
+      # Manual dispatches (quick / extra-long / vendor-only) just upload artifacts,
+      # so extra-long numbers never land in the README.
+      - name: Update README benchmark table
+        if: github.event_name == 'schedule'
+        run: python notebooks/_update_readme.py
+
+      - name: Commit updated README + benchmark history
+        if: github.event_name == 'schedule'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md notebooks/_artifacts/benchmark_history.jsonl
+          if git diff --cached --quiet; then
+            echo "No benchmark changes - nothing to commit."
+          else
+            git commit -m "docs: update benchmark results from scheduled CI run [skip ci]"
+            git push
+          fi
 
       - name: Upload benchmark artifacts
         if: always()
