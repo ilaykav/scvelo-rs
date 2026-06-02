@@ -108,18 +108,14 @@ def differential_kinetic_test(
         clusters_series = clusters_series.astype("category")
     cluster_cats = list(clusters_series.cat.categories)
     n_clusters = len(cluster_cats)
-    cluster_assign = np.ascontiguousarray(
-        clusters_series.cat.codes.values, dtype=np.int32
-    )
+    cluster_assign = np.ascontiguousarray(clusters_series.cat.codes.values, dtype=np.int32)
 
     # Per-gene fit params. scvelo's load_pars stores beta as fit_beta /
     # scaling (line 585 of _em_model_core.py); load_pars then multiplies
     # back to recover the internal beta. We pass the internal beta to Rust.
     def _get_var(col, default=None):
         if col in adata.var.columns:
-            return np.ascontiguousarray(
-                adata.var[col].values[var_idx], dtype=np.float64
-            )
+            return np.ascontiguousarray(adata.var[col].values[var_idx], dtype=np.float64)
         if default is None:
             raise KeyError(col)
         return np.full(n_genes, default, dtype=np.float64)
@@ -165,9 +161,7 @@ def differential_kinetic_test(
     full_pvals_f32 = np.full((adata.n_vars, n_clusters), np.nan, dtype=np.float32)
     full_pvals_f32[var_idx, :] = pvals.astype(np.float32)
     dtype = [(str(name), "float32") for name in cluster_cats]
-    adata.varm[f"{add_key}_pvals_kinetics"] = np.rec.fromarrays(
-        full_pvals_f32.T, dtype=dtype
-    ).T
+    adata.varm[f"{add_key}_pvals_kinetics"] = np.rec.fromarrays(full_pvals_f32.T, dtype=dtype).T
 
     # var["fit_diff_kinetics"]: comma-separated list of significant cluster names.
     diff_str = np.empty(adata.n_vars, dtype=object)

@@ -617,8 +617,12 @@ pub fn fit_one_gene(
     let mut s_max_w = f64::NEG_INFINITY;
     for i in 0..n_total {
         if weights[i] {
-            if u[i] > u_max_w { u_max_w = u[i]; }
-            if s[i] > s_max_w { s_max_w = s[i]; }
+            if u[i] > u_max_w {
+                u_max_w = u[i];
+            }
+            if s[i] > s_max_w {
+                s_max_w = s[i];
+            }
         }
     }
     let likelihood = if !u_max_w.is_finite() || !s_max_w.is_finite() {
@@ -638,8 +642,15 @@ pub fn fit_one_gene(
                 continue;
             }
             let t_i = assign.t[i];
-            let (tau_i, alpha_i, u0_i, s0_i) =
-                vectorize_per_cell(t_i, state.t_, state.alpha, state.beta, state.gamma, 0.0, 0.0);
+            let (tau_i, alpha_i, u0_i, s0_i) = vectorize_per_cell(
+                t_i,
+                state.t_,
+                state.alpha,
+                state.beta,
+                state.gamma,
+                0.0,
+                0.0,
+            );
             let (ut_i, st_i) =
                 splicing_solution_scalar(tau_i, alpha_i, state.beta, state.gamma, u0_i, s0_i);
             let udiff = (ut_i - u_scaled_scratch[i]) / state.std_u * state.scaling;
@@ -651,7 +662,13 @@ pub fn fit_one_gene(
             }
             distx_upper.push(distx_i);
             // numpy `np.sign` returns 0 for 0.0 - mirror it.
-            let sgn = if sdiff > 0.0 { 1.0 } else if sdiff < 0.0 { -1.0 } else { 0.0 };
+            let sgn = if sdiff > 0.0 {
+                1.0
+            } else if sdiff < 0.0 {
+                -1.0
+            } else {
+                0.0
+            };
             sgn_sqrt_buf.push(sgn * distx_i.sqrt());
         }
         let n_upper = distx_upper.len();

@@ -52,6 +52,9 @@ Changelog  = "https://github.com/ilaykav/scvelo-rs/blob/main/CHANGELOG.md"
 dev = [
     "pytest>=8",
     "pytest-benchmark>=4",
+    "pre-commit>=3",
+    # Pinned to match .pre-commit-config.yaml so local, hook, and CI ruff agree.
+    "ruff==0.15.12",
 ]
 docs = [
     "sphinx>=7",

@@ -125,25 +125,12 @@ pub fn diff_kinetic_test_kernel<'py>(
 
     let pvals_flat = py.allow_threads(|| {
         diff_kinetic::diff_kinetic_test_kernel(
-            n_cells,
-            n_genes,
-            u_slice,
-            s_slice,
-            alpha_s,
-            beta_s,
-            gamma_s,
-            scaling_s,
-            t__s,
-            ca_s,
-            n_clusters,
-            min_cells,
-            conn_view,
+            n_cells, n_genes, u_slice, s_slice, alpha_s, beta_s, gamma_s, scaling_s, t__s, ca_s,
+            n_clusters, min_cells, conn_view,
         )
     });
 
-    let pvals_arr =
-        ndarray::Array2::from_shape_vec((n_genes, n_clusters), pvals_flat).map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("pvals shape error: {e}"))
-        })?;
+    let pvals_arr = ndarray::Array2::from_shape_vec((n_genes, n_clusters), pvals_flat)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("pvals shape error: {e}")))?;
     Ok(pvals_arr.into_pyarray_bound(py))
 }

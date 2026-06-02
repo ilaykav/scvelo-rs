@@ -61,7 +61,6 @@ def _load_and_prep(loader_name: str, n_obs: int):
 @pytest.mark.parametrize("loader,n_obs", _FIXTURES, ids=lambda v: str(v))
 def test_diff_kinetic_bit_exact(loader, n_obs):
     import scvelo as scv
-
     import scvelo_rs
 
     base = _load_and_prep(loader, n_obs)
@@ -115,9 +114,7 @@ def test_diff_kinetic_bit_exact(loader, n_obs):
 
     sv_m = _recarray_to_2d_f64(a.varm["fit_pvals_kinetics"])
     rs_m = _recarray_to_2d_f64(b.varm["fit_pvals_kinetics"])
-    assert sv_m.shape == rs_m.shape, (
-        f"{fixture}: varm shape {rs_m.shape} != scvelo {sv_m.shape}"
-    )
+    assert sv_m.shape == rs_m.shape, f"{fixture}: varm shape {rs_m.shape} != scvelo {sv_m.shape}"
     sv_nan_m, rs_nan_m = np.isnan(sv_m), np.isnan(rs_m)
     assert np.array_equal(sv_nan_m, rs_nan_m), (
         f"{fixture}: NaN pattern differs in varm['fit_pvals_kinetics']"
@@ -132,9 +129,10 @@ def test_diff_kinetic_bit_exact(loader, n_obs):
     )
 
     # 4. uns key.
-    assert a.uns["recover_dynamics"]["fit_diff_kinetics"] == b.uns["recover_dynamics"][
-        "fit_diff_kinetics"
-    ]
+    assert (
+        a.uns["recover_dynamics"]["fit_diff_kinetics"]
+        == b.uns["recover_dynamics"]["fit_diff_kinetics"]
+    )
 
     speedup = scv_time / max(rs_time, 1e-6)
     print(

@@ -20,13 +20,12 @@ def load_data():
 def run(lib, adata) -> None:
     """Execute scvelo dynamical pipeline + CellRank fate mapping in-place."""
     import cellrank as cr
+    import numpy as np
 
     # Preprocessing: split filter_and_normalize and use scanpy for HVGs
     # because scvelo 0.3.4's combined helper forwards n_top_genes
     # incorrectly through **kwargs.
     import scanpy as sc
-
-    import numpy as np
 
     lib.pp.filter_genes(adata, min_shared_counts=20)
     lib.pp.normalize_per_cell(adata)

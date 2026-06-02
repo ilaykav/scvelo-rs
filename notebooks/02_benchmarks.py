@@ -510,8 +510,14 @@ def _compare_adatas(a, b, atol: float = 1e-9, rtol: float = 1e-9) -> dict:
     # var fit params (only those present on both sides).
     f64_eps = float(np.finfo(np.float64).eps)
     var_targets = [
-        "fit_alpha", "fit_beta", "fit_gamma", "fit_scaling", "fit_t_",
-        "fit_likelihood", "fit_std_u", "fit_std_s",
+        "fit_alpha",
+        "fit_beta",
+        "fit_gamma",
+        "fit_scaling",
+        "fit_t_",
+        "fit_likelihood",
+        "fit_std_u",
+        "fit_std_s",
         "fit_pval_kinetics",
     ]
     for col in var_targets:
@@ -519,10 +525,10 @@ def _compare_adatas(a, b, atol: float = 1e-9, rtol: float = 1e-9) -> dict:
             res = _cmp_array(
                 np.asarray(a.var[col].values, dtype=np.float64),
                 np.asarray(b.var[col].values, dtype=np.float64),
-                atol=atol, rtol=rtol,
+                atol=atol,
+                rtol=rtol,
             )
-            res["ok"] = (res.get("nan_match", False)
-                        and res.get("max_abs", 1.0) <= atol + rtol * 1.0)
+            res["ok"] = res.get("nan_match", False) and res.get("max_abs", 1.0) <= atol + rtol * 1.0
             summary["checks"][f"var.{col}"] = res
             summary["total"] += 1
             summary["passes"] += int(res.get("ok", False))
@@ -540,6 +546,7 @@ def _compare_adatas(a, b, atol: float = 1e-9, rtol: float = 1e-9) -> dict:
 
     # varm fit_pvals_kinetics (per-cluster recarray, stored as f32).
     if "fit_pvals_kinetics" in a.varm and "fit_pvals_kinetics" in b.varm:
+
         def _to2d(rec):
             arr = np.asarray(rec)
             if arr.dtype.names is not None:
@@ -547,34 +554,35 @@ def _compare_adatas(a, b, atol: float = 1e-9, rtol: float = 1e-9) -> dict:
             else:
                 stacked = arr.astype(np.float64, copy=False)
             return stacked.reshape(stacked.shape[0], -1)
+
         ma, mb = _to2d(a.varm["fit_pvals_kinetics"]), _to2d(b.varm["fit_pvals_kinetics"])
         f32_eps = float(np.finfo(np.float32).eps)
         res = _cmp_array(ma, mb, atol=f32_eps, rtol=f32_eps)
-        res["ok"] = (res.get("nan_match", False)
-                     and res.get("max_abs", 1.0) <= f32_eps)
+        res["ok"] = res.get("nan_match", False) and res.get("max_abs", 1.0) <= f32_eps
         summary["checks"]["varm.fit_pvals_kinetics"] = res
         summary["total"] += 1
         summary["passes"] += int(res["ok"])
 
     # Per-cell layers (NaN-aware, looser tol).
     layer_atol, layer_rtol = 1e-7, 1e-7
-    for layer in ("fit_t", "fit_tau", "fit_tau_", "velocity", "velocity_u",
-                  "Ms", "Mu"):
+    for layer in ("fit_t", "fit_tau", "fit_tau_", "velocity", "velocity_u", "Ms", "Mu"):
         if layer in a.layers and layer in b.layers:
             res = _cmp_array(
                 _to_dense_f64(a.layers[layer]),
                 _to_dense_f64(b.layers[layer]),
-                atol=layer_atol, rtol=layer_rtol,
+                atol=layer_atol,
+                rtol=layer_rtol,
             )
-            res["ok"] = (res.get("nan_match", False)
-                         and res.get("max_abs", 1.0) <= layer_atol + layer_rtol * 1.0)
+            res["ok"] = (
+                res.get("nan_match", False)
+                and res.get("max_abs", 1.0) <= layer_atol + layer_rtol * 1.0
+            )
             summary["checks"][f"layers.{layer}"] = res
             summary["total"] += 1
             summary["passes"] += int(res.get("ok", False))
 
     summary["verdict"] = "PASS" if summary["passes"] == summary["total"] else "DRIFT"
-    summary["pass_ratio"] = (summary["passes"] / summary["total"]
-                             if summary["total"] > 0 else 0.0)
+    summary["pass_ratio"] = summary["passes"] / summary["total"] if summary["total"] > 0 else 0.0
     return summary
 
 
@@ -661,15 +669,17 @@ def run_one(bench: Bench) -> dict:
             print(f"  -> scvelo skipped, scvelo-rs survived ({r['wall_s']}s, {r['peak_mb']}MB)")
 
     # Bit-exactness comparison (opt-in via verify_bit_exact).
-    if (bench.verify_bit_exact and "scvelo" in adatas and "scvelo_rs" in adatas):
+    if bench.verify_bit_exact and "scvelo" in adatas and "scvelo_rs" in adatas:
         verify = _compare_adatas(adatas["scvelo"], adatas["scvelo_rs"])
         out["verify"] = verify
         print(f"  -> bit-exact: {_format_bit_exact_short(verify)}")
         for name, res in verify.get("checks", {}).items():
             if not res.get("ok", False):
                 if "max_abs" in res:
-                    print(f"       DRIFT  {name}  max_abs={res['max_abs']:.3e}  "
-                          f"nan_match={res.get('nan_match')}")
+                    print(
+                        f"       DRIFT  {name}  max_abs={res['max_abs']:.3e}  "
+                        f"nan_match={res.get('nan_match')}"
+                    )
                 elif "match" in res:
                     print(f"       DRIFT  {name}  match={res['match']}/{res['total']}")
         adatas.clear()
@@ -710,6 +720,7 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
             ("memory", "Memory (peak heap)"),
             ("vendor", "Vendor workflows (real-world end-to-end)"),
         )
+
         def _verify_cell(r):
             v = r.get("verify")
             if not v:
@@ -727,7 +738,9 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
                 f.write("| workflow | cells | genes | scvelo | scvelo-rs | speedup | bit-exact |\n")
                 f.write("|---|---:|---:|---|---|---:|---|\n")
             else:
-                f.write("| benchmark | cells | genes | ops | scvelo | scvelo-rs | ratio | bit-exact |\n")
+                f.write(
+                    "| benchmark | cells | genes | ops | scvelo | scvelo-rs | ratio | bit-exact |\n"
+                )
                 f.write("|---|---:|---:|---|---|---|---:|---|\n")
 
             for r in results:

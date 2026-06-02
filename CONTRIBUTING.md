@@ -13,6 +13,7 @@ git clone https://github.com/ilaykav/scvelo-rs
 cd scvelo-rs
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
+pre-commit install            # auto-formats on commit so CI lint never goes red
 maturin develop --release
 pytest tests/unit tests/integration
 ```
@@ -34,6 +35,10 @@ Requires Rust 1.75+ and Python 3.10+.
 
 ## Style
 
+- Formatting is automatic: `pre-commit install` once, then `ruff --fix`,
+  `ruff format`, and `cargo fmt` run on every commit. The CI `Python lint`
+  and `Rust lint` jobs check the same thing, so a clean commit stays green.
+  If you skip the hook, run `pre-commit run --all-files` before pushing.
 - Rust: `cargo fmt`, `cargo clippy`. Comments are sparse - only WHY when
   it's not obvious from the code.
 - Python: stay close to scvelo's API surface. The wrapper layer is glue;

@@ -286,22 +286,39 @@ fn diff_kinetic_test_one_gene(
     }
     let std_u_clipped = std_pop(&u_w_clipped);
     let std_s_clipped = std_pop(&s_w_clipped);
-    let max_u_clipped = u_w_clipped.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-    let max_s_clipped = s_w_clipped.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let max_u_clipped = u_w_clipped
+        .iter()
+        .cloned()
+        .fold(f64::NEG_INFINITY, f64::max);
+    let max_s_clipped = s_w_clipped
+        .iter()
+        .cloned()
+        .fold(f64::NEG_INFINITY, f64::max);
     let mut weights_upper_clipped = vec![false; n];
     for i in 0..n {
-        weights_upper_clipped[i] = weights_clipped[i]
-            && u_raw[i] > max_u_clipped / 3.0
-            && s[i] > max_s_clipped / 3.0;
+        weights_upper_clipped[i] =
+            weights_clipped[i] && u_raw[i] > max_u_clipped / 3.0 && s[i] > max_s_clipped / 3.0;
     }
 
     // (d) Pass 1: varx via assign_timepoints with CLIPPED std (matches
     //     `dm.get_variance()` called BEFORE `initialize_weights(weighted=False)`
     //     overwrites the weighted=True state).
     let assign_clipped = assign_timepoints(
-        &u_scaled, s, alpha, beta, gamma, scaling, t_, u0_, s0_,
-        std_u_clipped, std_s_clipped,
-        true, true, connectivities, AssignmentMode::None,
+        &u_scaled,
+        s,
+        alpha,
+        beta,
+        gamma,
+        scaling,
+        t_,
+        u0_,
+        s0_,
+        std_u_clipped,
+        std_s_clipped,
+        true,
+        true,
+        connectivities,
+        AssignmentMode::None,
     );
     let varx = {
         let mut dx_buf: Vec<f64> = Vec::new();
@@ -353,9 +370,21 @@ fn diff_kinetic_test_one_gene(
 
     // (f) Pass 2: assign_timepoints with UN-CLIPPED std.
     let assign = assign_timepoints(
-        &u_scaled, s, alpha, beta, gamma, scaling, t_, u0_, s0_,
-        std_u_raw, std_s,
-        true, true, connectivities, AssignmentMode::None,
+        &u_scaled,
+        s,
+        alpha,
+        beta,
+        gamma,
+        scaling,
+        t_,
+        u0_,
+        s0_,
+        std_u_raw,
+        std_s,
+        true,
+        true,
+        connectivities,
+        AssignmentMode::None,
     );
 
     // (g) outside_of_trajectory using PASS-2 tau_unmasked / tau__unmasked.
@@ -365,10 +394,24 @@ fn diff_kinetic_test_one_gene(
     let mut ut__out = vec![0.0f64; n];
     let mut st__out = vec![0.0f64; n];
     splicing_solution_array(
-        &assign.tau_unmasked, alpha, beta, gamma, 0.0, 0.0, &mut ut_out, &mut st_out,
+        &assign.tau_unmasked,
+        alpha,
+        beta,
+        gamma,
+        0.0,
+        0.0,
+        &mut ut_out,
+        &mut st_out,
     );
     splicing_solution_array(
-        &assign.tau__unmasked, 0.0, beta, gamma, u0_, s0_, &mut ut__out, &mut st__out,
+        &assign.tau__unmasked,
+        0.0,
+        beta,
+        gamma,
+        u0_,
+        s0_,
+        &mut ut__out,
+        &mut st__out,
     );
     let mut weights_outer = vec![false; n];
     for i in 0..n {
@@ -416,8 +459,7 @@ fn diff_kinetic_test_one_gene(
     let worst_outer = argmax(&mse_outer);
     let mut cluster_mask = vec![false; n];
     for i in 0..n {
-        cluster_mask[i] = cluster_assign[i] >= 0
-            && (cluster_assign[i] as usize) == worst_outer;
+        cluster_mask[i] = cluster_assign[i] >= 0 && (cluster_assign[i] as usize) == worst_outer;
     }
     let mut weights_and_cluster = vec![false; n];
     for i in 0..n {
@@ -425,8 +467,17 @@ fn diff_kinetic_test_one_gene(
     }
     let mut orth_beta = orth_beta_for(&u_scaled, s, &weights_and_cluster);
     let pval_worst = single_cluster_pval(
-        &distx, &u_scaled, s, &weights_outer, &cluster_mask,
-        orth_beta, std_u_raw, std_s, scaling, varx, min_cells,
+        &distx,
+        &u_scaled,
+        s,
+        &weights_outer,
+        &cluster_mask,
+        orth_beta,
+        std_u_raw,
+        std_s,
+        scaling,
+        varx,
+        min_cells,
     );
 
     // (k) Fallback to 'upper' if not significant.
@@ -455,8 +506,8 @@ fn diff_kinetic_test_one_gene(
         let mut cluster_mask_upper = vec![false; n];
         let mut weights_and_cluster_upper = vec![false; n];
         for i in 0..n {
-            cluster_mask_upper[i] = cluster_assign[i] >= 0
-                && (cluster_assign[i] as usize) == worst_upper;
+            cluster_mask_upper[i] =
+                cluster_assign[i] >= 0 && (cluster_assign[i] as usize) == worst_upper;
             // scvelo's `get_orth_fit` hard-overrides `weighted=True`
             // (line 1654: `kwargs["weighted"] = True`). Inside `get_weights`,
             // `weighted=True` (boolean) returns `self.weights` (NOT
@@ -473,8 +524,18 @@ fn diff_kinetic_test_one_gene(
 
     // (l) Per-cluster pvals under chosen mode.
     per_cluster_pvals(
-        &distx, &u_scaled, s, &mode_mask, cluster_assign, n_clusters, min_cells,
-        orth_beta, std_u_raw, std_s, scaling, varx,
+        &distx,
+        &u_scaled,
+        s,
+        &mode_mask,
+        cluster_assign,
+        n_clusters,
+        min_cells,
+        orth_beta,
+        std_u_raw,
+        std_s,
+        scaling,
+        varx,
     )
 }
 

@@ -1,0 +1,34 @@
+# Auto-fix formatting/imports on every commit so the CI lint jobs
+# (`Python lint (ruff)`, `Rust lint (fmt + clippy)`) never go red on a nit.
+#
+# One-time setup per clone:
+#     pip install pre-commit   # or: pip install -e ".[dev]"
+#     pre-commit install
+#
+# After that, `git commit` auto-applies `ruff --fix`, `ruff format`, and
+# `cargo fmt`. If a hook rewrites a file, the commit aborts so you can
+# re-stage the fixed version, then commit again.
+#
+# ruff is pinned to match `[project.optional-dependencies].dev` and the
+# version CI installs; bump all three together when upgrading ruff.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
+    hooks:
+      # Lint with autofix (import sorting, unused imports, pyupgrade, ...).
+      - id: ruff-check
+        args: [--fix]
+        files: ^(python|tests|notebooks|examples|vendor)/
+      # Format (the `ruff format --check` CI gate, applied instead of checked).
+      - id: ruff-format
+        files: ^(python|tests|notebooks|examples|vendor)/
+
+  - repo: local
+    hooks:
+      # cargo fmt over the whole workspace; runs only when .rs files are staged.
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all
+        language: system
+        types: [rust]
+        pass_filenames: false
