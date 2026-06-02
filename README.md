@@ -16,7 +16,7 @@ Rust implementation of heavy-weight bottlenecks like `recover_dynamics` & `veloc
 - **End-to-end on real workflows.** The canonical scvelo Pancreas tutorial
   (3,696 cells, full pipeline incl. PCA, KNN, latent time) runs **11.5×
   faster** - 15 min on stock scvelo becomes 1.3 min on scvelo-rs. The Rust
-  `recover_dynamics` kernel is doing the heavy lifting (~160× isolated);
+  `recover_dynamics` kernel is doing the heavy lifting (\~160× isolated);
   the remaining workflow time is preprocessing and downstream analysis
   that pass through unchanged. See [Benchmarks](#benchmarks) and
   [`vendor/`](vendor/) for the full end-to-end numbers.
@@ -128,19 +128,19 @@ backends with identical input** - not a microbench of one kernel. It's what a
 user sees when they swap `import scvelo as scv` for `import scvelo_rs as scv` on
 their own analysis. All five are registered in
 [`notebooks/02_benchmarks.py`](notebooks/02_benchmarks.py) (`category="vendor"`),
-run on the weekly CI cron, and live in [`vendor/workflows/`](vendor/workflows/).
+run on the CI cron (every other day), and live in [`vendor/workflows/`](vendor/workflows/).
 
 | workflow | cells | tissue · downstream | speedup | numerical match |
 |---|---:|---|---|---|
 | [Pancreas tutorial](vendor/workflows/pancreas_tutorial) (Bastidas-Ponce 2019) | 3,696 | mouse pancreas · `latent_time` | **11.5×** (919 s → 80 s) | near-bit-exact |
-| [Differential kinetics](vendor/workflows/gastrulation_e75_diffkinetics) (Pijuan-Sala E7.5) | ~21k | mouse embryo · `differential_kinetic_test` + per-cluster refit | **21.6×** full pipeline; **593×** on the test step alone | `differential_kinetic_test` **bit-exact** |
-| [CellRank-2 hematopoiesis](vendor/workflows/cellrank2_hematopoiesis) (Setty 2019) | ~24k | human bone marrow · CellRank `VelocityKernel` + GPCCA fate mapping | ~**8.9×** end-to-end | near-bit-exact |
-| [PBMC 68k](vendor/workflows/pbmc68k_pipeline) (Zheng 2017) | ~68k | human PBMCs · `latent_time` | ~5–8 h → ~10–20 min (cron) | near-bit-exact |
-| [Mouse gastrulation atlas](vendor/workflows/mouse_gastrulation_atlas) (Pijuan-Sala 2019) | ~116k | mouse embryo · atlas-scale dynamical | stock OOM/timeout → ~15–30 min | scvelo-rs-only |
+| [Differential kinetics](vendor/workflows/gastrulation_e75_diffkinetics) (Pijuan-Sala E7.5) | \~21k | mouse embryo · `differential_kinetic_test` + per-cluster refit | **21.6×** full pipeline; **593×** on the test step alone | `differential_kinetic_test` **bit-exact** |
+| [CellRank-2 hematopoiesis](vendor/workflows/cellrank2_hematopoiesis) (Setty 2019) | \~24k | human bone marrow · CellRank `VelocityKernel` + GPCCA fate mapping | \~**8.9×** end-to-end | near-bit-exact |
+| [PBMC 68k](vendor/workflows/pbmc68k_pipeline) (Zheng 2017) | \~68k | human PBMCs · `latent_time` | \~5–8 h → \~10–20 min (cron) | near-bit-exact |
+| [Mouse gastrulation atlas](vendor/workflows/mouse_gastrulation_atlas) (Pijuan-Sala 2019) | \~116k | mouse embryo · atlas-scale dynamical | stock OOM/timeout → \~15–30 min | scvelo-rs-only |
 
 Why these are representative, not cherry-picked: the pancreas tutorial is the
 canonical scvelo intro; CellRank fate-mapping is the single most common
-downstream consumer of `recover_dynamics`; PBMC 68k (Zheng 2017, ~5,000
+downstream consumer of `recover_dynamics`; PBMC 68k (Zheng 2017, \~5,000
 citations) is the standard high-volume stress dataset; and the 116k
 gastrulation atlas is exactly where stock scvelo is documented to OOM/time out
 (scvelo issues #247, #756, #405) - the bench reports those as `SKIPPED` and
@@ -148,40 +148,56 @@ produces a scvelo-rs-only number.
 
 **Numerical equivalence.** `differential_kinetic_test` is **bit-exact** vs
 scvelo given identical fits (`fit_diff_kinetics` matches 2000/2000 string-equal;
-per-cluster p-values agree to f64 ULP, ~1e-16). `recover_dynamics` / `velocity`
+per-cluster p-values agree to f64 ULP, \~1e-16). `recover_dynamics` / `velocity`
 are **near-bit-exact**: with input layers cast to `float64`, per-gene parameters
-match scvelo to a median of 0 and ≤~3e-3 relative on a small set of
+match scvelo to a median of 0 and ≤\~3e-3 relative on a small set of
 Nelder-Mead saddle-point outlier genes (≈1% of fitted genes); that residual
 propagates into `velocity` / `fit_t` in the full pipeline. `fit_scaling`,
 `fit_std_u/s`, and `fit_likelihood` are bit-exact (the latter matches to
 3.6e-16 after porting scvelo's `get_likelihood(weighted='upper')`). See the
 phase log in `CLAUDE.md` for the per-gene breakdown.
 
-### Microbenchmarks (synthetic atlases)
+### Latest CI run (auto-updated every other day)
 
-These isolate individual kernels and skip the non-accelerated parts of a
-real workflow. Useful for understanding *where* the time goes; less
-representative of end-to-end user experience than the table above.
+The tables below are regenerated every other day by the
+[benchmarks workflow](.github/workflows/benchmarks.yml) on a GitHub-hosted
+runner and committed here automatically - reproducible CI measurements, not
+hand-entered numbers. They cover the `--long` tier (synthetic micro-benchmarks
+isolating each kernel, plus the pancreas and CellRank vendor workflows); the
+atlas-scale `extra-long` benches exceed CI's 6 h job cap and are summarised in
+the real-world table above. A rolling per-run retrospective (last 100 runs, one
+compact JSON line each) is kept in
+[`notebooks/_artifacts/benchmark_history.jsonl`](notebooks/_artifacts/benchmark_history.jsonl).
 
-### Wall time
+<!-- BENCHMARKS:START - auto-generated by .github/workflows/benchmarks.yml; do not edit by hand -->
 
-| benchmark | cells | genes | scvelo | scvelo-rs | speedup |
-|---|---:|---:|---:|---:|---:|
-| recover_dynamics (5k cells, 50 genes)                     |   5,000 |  50 |   43.24 s |  1.03 s | **42.0×** |
-| recover_dynamics + velocity (20k, 100)                    |  20,000 | 100 |  380.02 s | 10.09 s | **37.7×** |
-| recover_dynamics + velocity + velocity_graph (20k, 100)   |  20,000 | 100 |  389.54 s | 10.79 s | **36.1×** |
-| full pipeline (50k, 100)                                  |  50,000 | 100 | 1202.26 s | 34.35 s | **35.0×** |
-| recover_dynamics (100k, 30)                               | 100,000 |  30 |  671.65 s | 22.85 s | **29.4×** |
+**Run on:** developer workstation (CPU model unrecorded), single-threaded `n_jobs=1`
 
-### Peak memory
+> Measured single-threaded with `n_jobs=1`. GitHub-hosted CI runners (2 cores) show smaller speedups than developer workstations - these numbers illustrate the gap rather than serving as a hardware-neutral benchmark. Re-running `notebooks/02_benchmarks.py` will regenerate this file with the actual runner's CPU/RAM stamped automatically.
 
-| benchmark | cells | genes | scvelo | scvelo-rs | saved |
-|---|---:|---:|---:|---:|---:|
-| recover_dynamics (5k, 50)                                 |   5,000 |  50 |  108.4 MB |   35.0 MB |    73 MB |
-| velocity_graph (20k, 100)                                 |  20,000 | 100 | 1727.5 MB |  626.5 MB | 1,101 MB |
-| steady-state layers (5k, 200)                             |   5,000 | 200 |  252.1 MB |   66.2 MB |   186 MB |
-| full pipeline (50k, 100)                                  |  50,000 | 100 | 4831.6 MB | 1879.3 MB | 2,952 MB |
-| recover_dynamics + velocity_graph (100k, 30)              | 100,000 |  30 | 7074.4 MB | 2794.9 MB | 4,280 MB |
+10 measurements: 5 speed + 5 memory, 4 marked LONG.
+
+#### Speed (wall time)
+
+| benchmark | cells | genes | ops | scvelo | scvelo-rs | ratio |
+|---|---:|---:|---|---|---|---:|
+| speed_recover_dynamics_5k | 5,000 | 50 | recover_dynamics | 43.24 s | 1.03 s | 41.98× |
+| speed_velocity_20k | 20,000 | 100 | recover_dynamics,velocity | 380.02 s | 10.09 s | 37.66× |
+| speed_velocity_graph_20k | 20,000 | 100 | recover_dynamics,velocity,velocity_graph | 389.54 s | 10.79 s | 36.1× |
+| speed_full_pipeline_50k (LONG) | 50,000 | 100 | recover_dynamics,velocity,velocity_graph | 1202.26 s | 34.35 s | 35.0× |
+| speed_recover_dynamics_100k (LONG) | 100,000 | 30 | recover_dynamics | 671.65 s | 22.85 s | 29.39× |
+
+#### Memory (peak heap)
+
+| benchmark | cells | genes | ops | scvelo | scvelo-rs | ratio |
+|---|---:|---:|---|---|---|---:|
+| mem_recover_dynamics_5k | 5,000 | 50 | recover_dynamics | 108.4 MB | 35.0 MB | +73.4 MB |
+| mem_velocity_graph_20k | 20,000 | 100 | recover_dynamics,velocity,velocity_graph | 1727.5 MB | 626.5 MB | +1101.0 MB |
+| mem_steady_state_layers | 5,000 | 200 | recover_dynamics,velocity,velocity_graph | 252.1 MB | 66.2 MB | +185.9 MB |
+| mem_full_pipeline_50k (LONG) | 50,000 | 100 | recover_dynamics,velocity,velocity_graph | 4831.6 MB | 1879.3 MB | +2952.3 MB |
+| mem_oom_crash_100k (LONG) | 100,000 | 30 | recover_dynamics,velocity,velocity_graph | 7074.4 MB | 2794.9 MB | +4279.5 MB |
+
+<!-- BENCHMARKS:END -->
 
 ## Build from source
 

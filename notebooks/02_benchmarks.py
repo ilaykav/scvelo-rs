@@ -1,10 +1,14 @@
 """Benchmark suite - 16 measurements across speed, memory, and vendor categories.
 
 Run as a script:
-    python notebooks/02_benchmarks.py [--quick | --long | --vendor-only]
+    python notebooks/02_benchmarks.py [--quick | --long | --extra-long | --vendor-only]
 
   --quick         run only the 7 quick benchmarks (~15 min on GH 2-core).
-  --long          run all 16 benchmarks including 5 vendor workflows (~18-32 h).
+  --long          run the 13 benches that fit a GitHub-hosted runner's 6 h job
+                  cap: quick + mid-size long + pancreas/cellrank vendors. Default.
+  --extra-long    run only the 3 atlas-scale / multi-hour benches that exceed 6 h
+                  (mouse gastrulation atlas, PBMC68k, E7.5 diff-kinetics). Needs a
+                  self-hosted or long-lived runner.
   --vendor-only   run only the 5 vendor (real-world) workflows.
   (default)       same as --long.
 
@@ -25,12 +29,12 @@ Outputs `notebooks/_artifacts/benchmark_table.md` and `_artifacts/benchmark_resu
     mem_full_pipeline_50k            - 50k × 100  LONG
     mem_oom_crash_100k               - 100k × 30  LONG
 
-  Vendor (real-world workflows, all LONG):
-    vendor_pancreas_tutorial               - scvelo pancreas tutorial (3.7k cells)
-    vendor_cellrank2_hematopoiesis         - CellRank fate mapping (24k cells)
-    vendor_mouse_gastrulation_atlas        - atlas scale (116k cells)
-    vendor_pbmc68k_pipeline                - Zheng 2017 PBMC (68k cells, immune)
-    vendor_gastrulation_e75_diffkinetics   - E7.5 (21k cells) + diff-kinetics path
+  Vendor (real-world workflows):
+    vendor_pancreas_tutorial               - scvelo pancreas tutorial (3.7k cells)   LONG
+    vendor_cellrank2_hematopoiesis         - CellRank fate mapping (24k cells)       LONG
+    vendor_mouse_gastrulation_atlas        - atlas scale (116k cells)                EXTRA-LONG
+    vendor_pbmc68k_pipeline                - Zheng 2017 PBMC (68k cells, immune)     EXTRA-LONG
+    vendor_gastrulation_e75_diffkinetics   - E7.5 (21k cells) + diff-kinetics path   EXTRA-LONG
 """
 
 from __future__ import annotations
@@ -47,6 +51,7 @@ import time
 import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -231,9 +236,13 @@ class Bench:
     # and report bit-exactness. Doubles transient memory (both adatas kept
     # through the compare call), so off by default on `memory` benches.
     verify_bit_exact: bool = False
+    # Benches that cannot finish within a GitHub-hosted runner's 6 h job cap
+    # (atlas-scale / multi-hour stock-scvelo). Kept out of --long; run them via
+    # --extra-long on a self-hosted or long-lived runner.
+    extra_long: bool = False
 
     def label(self) -> str:
-        suffix = " (LONG)" if self.long else ""
+        suffix = " (EXTRA-LONG)" if self.extra_long else " (LONG)" if self.long else ""
         return f"{self.name}{suffix}"
 
 
@@ -376,6 +385,7 @@ BENCHMARKS: list[Bench] = [
         name="vendor_mouse_gastrulation_atlas",
         category="vendor",
         long=True,
+        extra_long=True,
         n_cells=116_000,
         n_genes=2_000,
         workflow="mouse_gastrulation_atlas",
@@ -389,6 +399,7 @@ BENCHMARKS: list[Bench] = [
         name="vendor_pbmc68k_pipeline",
         category="vendor",
         long=True,
+        extra_long=True,
         n_cells=68_579,
         n_genes=2_000,
         workflow="pbmc68k_pipeline",
@@ -403,6 +414,7 @@ BENCHMARKS: list[Bench] = [
         name="vendor_gastrulation_e75_diffkinetics",
         category="vendor",
         long=True,
+        extra_long=True,
         n_cells=21_167,
         n_genes=2_000,
         workflow="gastrulation_e75_diffkinetics",
@@ -417,6 +429,8 @@ BENCHMARKS: list[Bench] = [
 
 assert len(BENCHMARKS) == 16
 assert sum(1 for b in BENCHMARKS if b.long) == 9
+assert sum(1 for b in BENCHMARKS if b.extra_long) == 3
+assert sum(1 for b in BENCHMARKS if b.long and not b.extra_long) == 6  # the --long tier
 assert sum(1 for b in BENCHMARKS if b.category == "speed") == 6
 assert sum(1 for b in BENCHMARKS if b.category == "memory") == 5
 assert sum(1 for b in BENCHMARKS if b.category == "vendor") == 5
@@ -697,14 +711,22 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8") as f:
         f.write("# scvelo-rs benchmark suite\n\n")
-        f.write(f"**Run on:** {_hardware_line(hardware)}\n\n")
+        f.write(f"**Run on:** {_hardware_line(hardware)}  \n")
+        f.write(f"**Generated:** {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}\n\n")
         f.write(
             "> Measured single-threaded with `n_jobs=1`. GitHub-hosted CI runners "
             "(2 cores) show smaller speedups than developer workstations - these "
             "numbers illustrate the gap rather than serving as a hardware-neutral "
             "benchmark.\n\n"
         )
-        f.write("16 measurements: 6 speed + 5 memory + 5 vendor (real workflows).\n\n")
+        n_by_cat = {
+            c: sum(1 for r in results if r.get("category") == c)
+            for c in ("speed", "memory", "vendor")
+        }
+        f.write(
+            f"{len(results)} measurements: {n_by_cat['speed']} speed + "
+            f"{n_by_cat['memory']} memory + {n_by_cat['vendor']} vendor (real workflows).\n\n"
+        )
 
         def fmt(d, key, unit):
             if not isinstance(d, dict):
@@ -792,6 +814,51 @@ def write_markdown(results: list[dict], out_path: Path, hardware: dict):
         f.write("Generated by `notebooks/02_benchmarks.py`.\n")
 
 
+# ---------------------------------------------------------------------------
+# Rolling retrospective: one compact JSON line per run, last N runs.
+# ---------------------------------------------------------------------------
+
+HISTORY_MAX = 100  # keep the last N runs in benchmark_history.jsonl
+
+
+def _bench_ratio(r: dict):
+    """One compact number per bench for the history line: the scvelo/scvelo_rs
+    ratio on wall time (speed/vendor) or peak heap (memory). Returns a float, or
+    a short status string for skipped / scvelo-OOM cases."""
+    sv, rs = r.get("scvelo"), r.get("scvelo_rs")
+    if not (isinstance(sv, dict) and isinstance(rs, dict)):
+        return None
+    if sv.get("status") == "skipped":
+        return "skipped"
+    if sv.get("status") == "OOM" and rs.get("status") == "ok":
+        return "scvelo_oom"
+    if sv.get("status") != "ok" or rs.get("status") != "ok":
+        return None
+    key = "peak_mb" if r.get("category") == "memory" else "wall_s"
+    a, b = sv.get(key), rs.get(key)
+    if not a or not b:
+        return None
+    return round(a / b, 2)
+
+
+def append_history(results: list[dict], tier: str, hardware: dict, path: Path) -> None:
+    """Append one compact JSON line summarising this run, then trim to the last
+    HISTORY_MAX runs. One line per run = a scannable retrospective of how every
+    bench has trended; the per-bench value is the scvelo/scvelo_rs ratio (×)."""
+    record = {
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
+        "sha": os.environ.get("GITHUB_SHA", "local")[:7],
+        "tier": tier,
+        "env": "ci" if os.environ.get("GITHUB_ACTIONS") else "local",
+        "speedup": {r["name"]: _bench_ratio(r) for r in results},
+    }
+    lines = []
+    if path.exists():
+        lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    lines.append(json.dumps(record, separators=(",", ":")))
+    path.write_text("\n".join(lines[-HISTORY_MAX:]) + "\n", encoding="utf-8")
+
+
 def main():
     ap = argparse.ArgumentParser()
     tier = ap.add_mutually_exclusive_group()
@@ -799,7 +866,14 @@ def main():
     tier.add_argument(
         "--long",
         action="store_true",
-        help="run all 16 benchmarks (quick + long + vendor). Same as no flag.",
+        help="run the long tier that still fits a 6 h runner (excludes --extra-long). Default.",
+    )
+    tier.add_argument(
+        "--extra-long",
+        action="store_true",
+        help="run only the atlas-scale / multi-hour benches that exceed a 6 h runner "
+        "(mouse gastrulation atlas, PBMC68k, E7.5 diff-kinetics). Needs a self-hosted "
+        "or long-lived runner.",
     )
     tier.add_argument(
         "--vendor-only",
@@ -809,13 +883,19 @@ def main():
     args = ap.parse_args()
 
     if args.quick:
-        # Quick excludes long. Vendor is always long.
+        # Quick excludes long (and therefore extra-long, which is also long).
+        tier_name = "quick"
         selected = [b for b in BENCHMARKS if not b.long]
+    elif args.extra_long:
+        tier_name = "extra-long"
+        selected = [b for b in BENCHMARKS if b.extra_long]
     elif args.vendor_only:
+        tier_name = "vendor-only"
         selected = [b for b in BENCHMARKS if b.category == "vendor"]
     else:
-        # default and --long both run everything (cumulative).
-        selected = list(BENCHMARKS)
+        # default and --long: everything that fits a 6 h runner (excludes extra-long).
+        tier_name = "long"
+        selected = [b for b in BENCHMARKS if not b.extra_long]
 
     hardware = _hardware_info()
     print(f"Hardware: {_hardware_line(hardware)}")
@@ -848,13 +928,16 @@ def main():
 
     md_path = out_dir / "benchmark_table.md"
     json_path = out_dir / "benchmark_results.json"
+    history_path = out_dir / "benchmark_history.jsonl"
     write_markdown(results, md_path, hardware)
     json_path.write_text(
         json.dumps({"hardware": hardware, "results": results}, indent=2, default=str),
         encoding="utf-8",
     )
+    append_history(results, tier_name, hardware, history_path)
     print(f"\nresults -> {md_path}")
     print(f"raw     -> {json_path}")
+    print(f"history -> {history_path} (last {HISTORY_MAX} runs)")
 
 
 if __name__ == "__main__":
