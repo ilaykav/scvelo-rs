@@ -338,7 +338,7 @@ def velocity_graph(
     rows, cols, vals = velocity_graph_kernel(X_c, V_c, indices_c, n_recurse_neighbors)
     rows = np.asarray(rows)
     cols = np.asarray(cols)
-    vals = np.asarray(vals, dtype=np.float64)
+    vals = np.asarray(vals, dtype=np.float32)
     vals[np.isnan(vals)] = 0
 
     n_obs = X.shape[0]
