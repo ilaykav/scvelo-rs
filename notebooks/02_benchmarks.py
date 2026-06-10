@@ -509,23 +509,6 @@ def _cmp_array(av, bv, atol, rtol):
 
 
 def _verdict_ok(res: dict, outlier_frac: float = 0.0) -> bool:
-    """`np.allclose`-style verdict for one comparison.
-
-    PASS iff the NaN pattern matches AND the fraction of elements failing the
-    element-wise tolerance `|a-b| <= atol + rtol*max(|a|,|b|)` is within
-    `outlier_frac`. The failing-element count comes from `_cmp_array.within_tol`,
-    which already applies the *relative* tolerance per element - so
-    large-magnitude arrays (`velocity`, `fit_t_`, `fit_alpha`) are judged on
-    relative drift, not a magnitude-1 absolute bound. The previous verdict used
-    `max_abs <= atol + rtol*1.0`, which collapses to a fixed absolute threshold
-    and falsely flags any array whose values exceed 1 (e.g. velocity ~O(1-10)
-    with 6e-8 relative drift -> 2.4e-7 absolute > 2e-7) as DRIFT.
-
-    `outlier_frac > 0` mirrors the parity contract enforced by
-    `tests/integration/test_bit_exact.py` (a small fraction of Nelder-Mead
-    saddle-point genes carry up to ~3e-3 drift at machine-noise scale); see
-    `_compare_adatas`.
-    """
     if not res.get("nan_match", False):
         return False
     if res.get("all_nan"):
@@ -537,11 +520,6 @@ def _verdict_ok(res: dict, outlier_frac: float = 0.0) -> bool:
     return (n_fail / n) <= outlier_frac
 
 
-# Standard: scvelo is bit-exact to itself on identical f64 input, so scvelo-rs
-# must be bit-exact to scvelo on the same f64 input - within the f64 noise floor
-# (the per-element rtol/atol below). No outlier allowance: every gene and every
-# cell must pass. A gene that doesn't is a real gap to close in the kernel, not
-# to wave through here.
 VAR_OUTLIER_FRAC = 0.0
 LAYER_OUTLIER_FRAC = 0.0
 
@@ -736,14 +714,6 @@ def run_one(bench: Bench) -> dict:
                     )
                 elif "match" in res:
                     print(f"       DRIFT  {name}  match={res['match']}/{res['total']}")
-            elif n_out > 0:
-                # Passed under the documented saddle-point outlier allowance -
-                # surface the count + worst drift so the tolerance stays honest.
-                print(
-                    f"       PASS*  {name}  {n_out}/{n_comp} elem > tol "
-                    f"(within {100 * n_out / max(1, n_comp):.2f}%); "
-                    f"worst max_rel={res.get('max_rel', 0):.3e}"
-                )
         adatas.clear()
         gc.collect()
 

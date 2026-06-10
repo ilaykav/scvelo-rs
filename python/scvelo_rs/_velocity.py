@@ -144,7 +144,7 @@ def velocity(
         thresh = float(np.percentile(np.asarray(r2), 80))
         velocity_genes = np.asarray(r2) > thresh
 
-    adata.layers[vkey] = np.asarray(residual, dtype=np.float32)
+    adata.layers[vkey] = np.asarray(residual, dtype=np.float64)
     adata.var[f"{vkey}_gamma"] = np.asarray(gamma)
     adata.var[f"{vkey}_offset"] = np.asarray(offset)
     adata.var[f"{vkey}_r2"] = np.asarray(r2)
