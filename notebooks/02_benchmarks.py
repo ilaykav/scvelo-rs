@@ -489,6 +489,8 @@ def _cmp_array(av, bv, atol, rtol):
             "nan_b": nan_count_b,
             "max_abs": 0.0,
             "max_rel": 0.0,
+            "n_compared": 0,
+            "within_tol": 0,
             "all_nan": True,
         }
     diff = np.abs(av[valid] - bv[valid])
@@ -504,6 +506,44 @@ def _cmp_array(av, bv, atol, rtol):
         "n_compared": int(valid.sum()),
         "within_tol": within,
     }
+
+
+def _verdict_ok(res: dict, outlier_frac: float = 0.0) -> bool:
+    """`np.allclose`-style verdict for one comparison.
+
+    PASS iff the NaN pattern matches AND the fraction of elements failing the
+    element-wise tolerance `|a-b| <= atol + rtol*max(|a|,|b|)` is within
+    `outlier_frac`. The failing-element count comes from `_cmp_array.within_tol`,
+    which already applies the *relative* tolerance per element - so
+    large-magnitude arrays (`velocity`, `fit_t_`, `fit_alpha`) are judged on
+    relative drift, not a magnitude-1 absolute bound. The previous verdict used
+    `max_abs <= atol + rtol*1.0`, which collapses to a fixed absolute threshold
+    and falsely flags any array whose values exceed 1 (e.g. velocity ~O(1-10)
+    with 6e-8 relative drift -> 2.4e-7 absolute > 2e-7) as DRIFT.
+
+    `outlier_frac > 0` mirrors the parity contract enforced by
+    `tests/integration/test_bit_exact.py` (a small fraction of Nelder-Mead
+    saddle-point genes carry up to ~3e-3 drift at machine-noise scale); see
+    `_compare_adatas`.
+    """
+    if not res.get("nan_match", False):
+        return False
+    if res.get("all_nan"):
+        return True
+    n = res.get("n_compared", 0)
+    if n == 0:
+        return True
+    n_fail = n - res.get("within_tol", 0)
+    return (n_fail / n) <= outlier_frac
+
+
+# Standard: scvelo is bit-exact to itself on identical f64 input, so scvelo-rs
+# must be bit-exact to scvelo on the same f64 input - within the f64 noise floor
+# (the per-element rtol/atol below). No outlier allowance: every gene and every
+# cell must pass. A gene that doesn't is a real gap to close in the kernel, not
+# to wave through here.
+VAR_OUTLIER_FRAC = 0.0
+LAYER_OUTLIER_FRAC = 0.0
 
 
 def _compare_adatas(a, b, atol: float = 1e-9, rtol: float = 1e-9) -> dict:
@@ -542,7 +582,7 @@ def _compare_adatas(a, b, atol: float = 1e-9, rtol: float = 1e-9) -> dict:
                 atol=atol,
                 rtol=rtol,
             )
-            res["ok"] = res.get("nan_match", False) and res.get("max_abs", 1.0) <= atol + rtol * 1.0
+            res["ok"] = _verdict_ok(res, outlier_frac=VAR_OUTLIER_FRAC)
             summary["checks"][f"var.{col}"] = res
             summary["total"] += 1
             summary["passes"] += int(res.get("ok", False))
@@ -572,7 +612,7 @@ def _compare_adatas(a, b, atol: float = 1e-9, rtol: float = 1e-9) -> dict:
         ma, mb = _to2d(a.varm["fit_pvals_kinetics"]), _to2d(b.varm["fit_pvals_kinetics"])
         f32_eps = float(np.finfo(np.float32).eps)
         res = _cmp_array(ma, mb, atol=f32_eps, rtol=f32_eps)
-        res["ok"] = res.get("nan_match", False) and res.get("max_abs", 1.0) <= f32_eps
+        res["ok"] = _verdict_ok(res, outlier_frac=VAR_OUTLIER_FRAC)
         summary["checks"]["varm.fit_pvals_kinetics"] = res
         summary["total"] += 1
         summary["passes"] += int(res["ok"])
@@ -587,10 +627,7 @@ def _compare_adatas(a, b, atol: float = 1e-9, rtol: float = 1e-9) -> dict:
                 atol=layer_atol,
                 rtol=layer_rtol,
             )
-            res["ok"] = (
-                res.get("nan_match", False)
-                and res.get("max_abs", 1.0) <= layer_atol + layer_rtol * 1.0
-            )
+            res["ok"] = _verdict_ok(res, outlier_frac=LAYER_OUTLIER_FRAC)
             summary["checks"][f"layers.{layer}"] = res
             summary["total"] += 1
             summary["passes"] += int(res.get("ok", False))
@@ -688,14 +725,25 @@ def run_one(bench: Bench) -> dict:
         out["verify"] = verify
         print(f"  -> bit-exact: {_format_bit_exact_short(verify)}")
         for name, res in verify.get("checks", {}).items():
+            n_comp = res.get("n_compared", 0)
+            n_out = n_comp - res.get("within_tol", n_comp)
             if not res.get("ok", False):
                 if "max_abs" in res:
                     print(
                         f"       DRIFT  {name}  max_abs={res['max_abs']:.3e}  "
-                        f"nan_match={res.get('nan_match')}"
+                        f"max_rel={res.get('max_rel', 0):.3e}  "
+                        f"outliers={n_out}/{n_comp}  nan_match={res.get('nan_match')}"
                     )
                 elif "match" in res:
                     print(f"       DRIFT  {name}  match={res['match']}/{res['total']}")
+            elif n_out > 0:
+                # Passed under the documented saddle-point outlier allowance -
+                # surface the count + worst drift so the tolerance stays honest.
+                print(
+                    f"       PASS*  {name}  {n_out}/{n_comp} elem > tol "
+                    f"(within {100 * n_out / max(1, n_comp):.2f}%); "
+                    f"worst max_rel={res.get('max_rel', 0):.3e}"
+                )
         adatas.clear()
         gc.collect()
 

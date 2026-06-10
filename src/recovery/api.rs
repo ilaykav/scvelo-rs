@@ -223,9 +223,18 @@ pub fn initialize_one_gene(
     }
 
     if fit_scaling {
+        // scvelo: `z_vals = scaling + np.linspace(-1, 1, num=4) * scaling * sight`.
+        // numpy linspace is `arange(num)*step + start` (step=(stop-start)/(num-1)),
+        // NOT i/(num-1): for num=4 the middle points are `1*(2/3)-1` and `2*(2/3)-1`,
+        // which differ from the naive `±1/3` in the last ULP. That 1-ULP gap in the
+        // committed candidate propagates through beta -> t_ and, via align_dynamics'
+        // exact `T == t_` count, blows up to ~5e-4 on saddle genes (e.g. Mia3). Match
+        // numpy's linspace exactly.
+        let lin_step = (1.0_f64 - (-1.0_f64)) / 3.0; // (stop-start)/(num-1) = 2/3
+        let lin = [-1.0_f64, 1.0 * lin_step - 1.0, 2.0 * lin_step - 1.0, 1.0];
         for sight in [0.5_f64, 0.1] {
             let scaling_snap = state.scaling;
-            for f_frac in [-1.0_f64, -1.0 / 3.0, 1.0 / 3.0, 1.0] {
+            for f_frac in lin {
                 let z = scaling_snap + f_frac * scaling_snap * sight;
                 let beta_z = state.beta / state.scaling * z;
                 try_update(
