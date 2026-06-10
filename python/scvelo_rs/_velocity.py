@@ -144,7 +144,7 @@ def velocity(
         thresh = float(np.percentile(np.asarray(r2), 80))
         velocity_genes = np.asarray(r2) > thresh
 
-    adata.layers[vkey] = np.asarray(residual, dtype=np.float32)
+    adata.layers[vkey] = np.asarray(residual, dtype=np.float64)
     adata.var[f"{vkey}_gamma"] = np.asarray(gamma)
     adata.var[f"{vkey}_offset"] = np.asarray(offset)
     adata.var[f"{vkey}_r2"] = np.asarray(r2)
@@ -338,7 +338,7 @@ def velocity_graph(
     rows, cols, vals = velocity_graph_kernel(X_c, V_c, indices_c, n_recurse_neighbors)
     rows = np.asarray(rows)
     cols = np.asarray(cols)
-    vals = np.asarray(vals, dtype=np.float64)
+    vals = np.asarray(vals, dtype=np.float32)
     vals[np.isnan(vals)] = 0
 
     n_obs = X.shape[0]

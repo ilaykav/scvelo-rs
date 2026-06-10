@@ -223,9 +223,11 @@ pub fn initialize_one_gene(
     }
 
     if fit_scaling {
+        let lin_step = (1.0_f64 - (-1.0_f64)) / 3.0;
+        let lin = [-1.0_f64, 1.0 * lin_step - 1.0, 2.0 * lin_step - 1.0, 1.0];
         for sight in [0.5_f64, 0.1] {
             let scaling_snap = state.scaling;
-            for f_frac in [-1.0_f64, -1.0 / 3.0, 1.0 / 3.0, 1.0] {
+            for f_frac in lin {
                 let z = scaling_snap + f_frac * scaling_snap * sight;
                 let beta_z = state.beta / state.scaling * z;
                 try_update(
