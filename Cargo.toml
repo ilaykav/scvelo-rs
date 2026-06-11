@@ -24,6 +24,16 @@ libm = "0.2"
 nalgebra = "0.33"
 hnsw_rs = "0.3"
 
+# mimalloc: per-thread heaps. The per-gene EM allocates millions of transient
+# Vecs / State clones inside the Nelder-Mead loop; under the system allocator
+# this serialises across Rayon threads and the kernel *regresses* past ~8
+# threads (16->32 threads measured 1.8x SLOWER on a 16-core box). mimalloc's
+# sharded heaps remove that contention - with it, the kernel scales past the
+# physical core count again (32 logical threads beat 16 physical on the same
+# box: ~16s vs ~19s). default-features=false keeps the build pure-Rust and
+# cross-platform (no secure-mode C deps).
+mimalloc = { version = "0.1", default-features = false }
+
 [profile.release]
 opt-level = 3
 lto = "thin"
